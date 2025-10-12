@@ -149,7 +149,10 @@
                         </svg>
                         <div id="soil-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                     </div>
-                     <p class="mt-4 text-gray-500 text-sm">토양의 수분 함량</p>
+                     <div class="w-full mt-4 text-center">
+                        <label for="soil-slider" class="text-sm text-gray-600">급수 기준 설정: <span id="soil-setpoint-label" class="font-bold text-green-600">70%</span></label>
+                        <input id="soil-slider" type="range" min="0" max="100" value="70" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2">
+                    </div>
                 </div>
 
                 <!-- Light Intensity Card -->
@@ -194,8 +197,12 @@
         const soilProgressEl = document.getElementById('soil-progress');
         const lightValueEl = document.getElementById('light-value');
         const lightProgressEl = document.getElementById('light-progress');
+        
         const humiditySlider = document.getElementById('humidity-slider');
         const humiditySetpointLabel = document.getElementById('humidity-setpoint-label');
+        const soilSlider = document.getElementById('soil-slider');
+        const soilSetpointLabel = document.getElementById('soil-setpoint-label');
+
         const connectBtn = document.getElementById('connectBtn');
         const simulateBtn = document.getElementById('simulateBtn');
         const pumpStatusEl = document.getElementById('pumpStatus');
@@ -225,12 +232,12 @@
         }
 
         // State for sensor values
-        // Set more realistic initial values for simulation
         let currentTemp = 25.0;
         let currentHumidity = 60;
         let currentSoil = 55;
         let currentLight = 800;
         let targetHumidity = 65;
+        let targetSoil = 70; // Water pump threshold
 
         // --- Chart Functions ---
         function initChart() {
@@ -358,11 +365,14 @@
             updateGauge(soilProgressEl, currentSoil, 100);
             updateGauge(lightProgressEl, currentLight, 2000);
 
-            updatePumpStatus(currentSoil < 70);
+            updatePumpStatus(currentSoil < targetSoil);
             addDataToChart(temp, humidity, soil, light);
         }
 
         function updatePumpStatus(isPumpActive) {
+            const pumpMessageText = pumpMessageEl.querySelector('p');
+            pumpMessageText.textContent = `토양 수분이 ${targetSoil}% 미만이므로 자동으로 물을 공급하고 있습니다.`;
+
             if (isPumpActive) {
                 pumpStatusEl.className = 'px-6 py-3 rounded-full font-bold text-lg bg-blue-500 text-white pulse-animation transition-all';
                 pumpStatusEl.textContent = '🚰 작동중';
@@ -542,6 +552,12 @@
         humiditySlider.addEventListener('input', (e) => {
             targetHumidity = parseInt(e.target.value);
             humiditySetpointLabel.textContent = `${targetHumidity}%`;
+        });
+
+        soilSlider.addEventListener('input', (e) => {
+            targetSoil = parseInt(e.target.value);
+            soilSetpointLabel.textContent = `${targetSoil}%`;
+            updatePumpStatus(currentSoil < targetSoil);
         });
 
         // --- Initializations ---
