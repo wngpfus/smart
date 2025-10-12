@@ -39,6 +39,15 @@
             50% { opacity: 0.7; }
             100% { opacity: 1; }
         }
+        /* Hide number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
     </style>
 </head>
 <body class="text-gray-800 p-4 sm:p-6 lg:p-8">
@@ -130,9 +139,14 @@
                         </svg>
                         <div id="humidity-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                     </div>
-                     <div class="w-full mt-4 text-center">
-                        <label for="humidity-slider" class="text-sm text-gray-600">목표 습도 설정: <span id="humidity-setpoint-label" class="font-bold text-blue-600">65%</span></label>
-                        <input id="humidity-slider" type="range" min="0" max="100" value="65" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2">
+                     <div class="w-full mt-4">
+                        <div class="flex items-center justify-between text-sm py-2">
+                            <label for="humidity-input" class="text-gray-600">목표 습도 설정</label>
+                            <div class="flex items-center gap-1">
+                                <input id="humidity-input" type="number" min="0" max="100" value="65" class="w-16 text-center font-bold text-blue-600 border border-gray-300 rounded-md p-1 focus:ring-blue-500 focus:border-blue-500">
+                                <span class="font-semibold text-gray-500">%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -149,9 +163,14 @@
                         </svg>
                         <div id="soil-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                     </div>
-                     <div class="w-full mt-4 text-center">
-                        <label for="soil-slider" class="text-sm text-gray-600">급수 기준 설정: <span id="soil-setpoint-label" class="font-bold text-green-600">70%</span></label>
-                        <input id="soil-slider" type="range" min="0" max="100" value="70" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-2">
+                     <div class="w-full mt-4">
+                        <div class="flex items-center justify-between text-sm py-2">
+                            <label for="soil-input" class="text-gray-600">급수 기준 설정</label>
+                            <div class="flex items-center gap-1">
+                                <input id="soil-input" type="number" min="0" max="100" value="70" class="w-16 text-center font-bold text-green-600 border border-gray-300 rounded-md p-1 focus:ring-green-500 focus:border-green-500">
+                                <span class="font-semibold text-gray-500">%</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -198,10 +217,8 @@
         const lightValueEl = document.getElementById('light-value');
         const lightProgressEl = document.getElementById('light-progress');
         
-        const humiditySlider = document.getElementById('humidity-slider');
-        const humiditySetpointLabel = document.getElementById('humidity-setpoint-label');
-        const soilSlider = document.getElementById('soil-slider');
-        const soilSetpointLabel = document.getElementById('soil-setpoint-label');
+        const humidityInput = document.getElementById('humidity-input');
+        const soilInput = document.getElementById('soil-input');
 
         const connectBtn = document.getElementById('connectBtn');
         const simulateBtn = document.getElementById('simulateBtn');
@@ -549,16 +566,39 @@
         });
 
         // --- Other Event Listeners ---
-        humiditySlider.addEventListener('input', (e) => {
-            targetHumidity = parseInt(e.target.value);
-            humiditySetpointLabel.textContent = `${targetHumidity}%`;
+        // Handle humidity number input
+        humidityInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (!isNaN(value) && value >= 0 && value <= 100) {
+                targetHumidity = value;
+            }
+        });
+        humidityInput.addEventListener('change', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 100) value = 100;
+            e.target.value = value;
+            targetHumidity = value;
         });
 
-        soilSlider.addEventListener('input', (e) => {
-            targetSoil = parseInt(e.target.value);
-            soilSetpointLabel.textContent = `${targetSoil}%`;
+
+        // Handle soil moisture number input
+        soilInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+             if (!isNaN(value) && value >= 0 && value <= 100) {
+                targetSoil = value;
+                updatePumpStatus(currentSoil < targetSoil);
+            }
+        });
+        soilInput.addEventListener('change', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) value = 0;
+            if (value > 100) value = 100;
+            e.target.value = value;
+            targetSoil = value;
             updatePumpStatus(currentSoil < targetSoil);
         });
+
 
         // --- Initializations ---
         initChart();
