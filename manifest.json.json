@@ -1,0 +1,25 @@
+{
+  "name": "스마트팜 모니터링",
+  "short_name": "스마트팜",
+  "description": "자동 급수 시스템 모니터링 앱",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%2310b981'/%3E%3Ctext x='96' y='145' font-size='120' text-anchor='middle' fill='white'%3E🌱%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%2310b981'/%3E%3Ctext x='256' y='380' font-size='320' text-anchor='middle' fill='white'%3E🌱%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
