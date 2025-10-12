@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#10b981">
+  <meta name="description" content="스마트팜 자동 급수 시스템 모니터링 앱">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="스마트팜">
+  <title>스마트팜 모니터링</title>
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E🌱%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E🌱%3C/text%3E%3C/svg%3E">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      touch-action: pan-y;
+      overscroll-behavior-y: contain;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .pulse-animation {
+      animation: pulse-frames 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    
+    @keyframes pulse-frames {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+
+    .install-prompt {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      z-index: 1000;
+      display: none;
+    }
+
+    .install-prompt.show {
+      display: block;
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    button {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50">
+  
+  <div id="installPrompt" class="install-prompt">
+    <div class="flex items-start gap-3">
+      <div class="text-2xl">📱</div>
+      <div class="flex-1">
+        <p class="font-bold text-gray-800 mb-1">홈화면에 추가하기</p>
+        <p class="text-sm text-gray-600 mb-3">스마트팜 앱을 홈화면에 추가하여 빠르게 접속하세요!</p>
+        <div class="flex gap-2">
+          <button onclick="installApp()" class="flex-1 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold text-sm active:bg-green-600">설치하기</button>
+          <button onclick="closeInstallPrompt()" class="px-4 py-2 text-gray-600 text-sm active:bg-gray-100 rounded-lg">나중에</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="min-h-screen p-4">
+    <div class="max-w-4xl mx-auto pb-20">
+      
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🌱 스마트팜 모니터링</h1>
+            <p class="text-gray-600">자동 급수 시스템 제어</p>
+          </div>
+          <div class="text-4xl">💧</div>
+        </div>
+
+        <div class="flex gap-3">
+          <button id="connectBtn" onclick="connectBluetooth()" class="flex-1 bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all">
+            📡 블루투스 연결
+          </button>
+          <button id="simulateBtn" onclick="startSimulation()" class="flex-1 bg-gray-500 hover:bg-gray-600 active:bg-gray-700 text-white font-semibold py-3 px-6 rounded-xl transition-all">
+            ⚡ 시뮬레이션
+          </button>
+        </div>
+      </div>
+
+      <div id="connectedView" style="display: none;">
+        
+        <div id="humidityCard" class="bg-green-50 border-2 border-green-200 rounded-2xl shadow-lg p-8 mb-6 transition-all">
+          <div class="text-center">
+            <p class="text-gray-600 font-semibold mb-2">현재 토양 습도</p>
+            <div id="humidityValue" class="text-7xl font-bold text-green-500 mb-4">0%</div>
+            <div id="humidityStatus" class="flex items-center justify-center gap-2">
+              <span class="text-green-600 font-semibold">💧 습도 적정</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xl font-bold text-gray-800 mb-2">워터펌프 상태</h3>
+              <p class="text-gray-600">자동 급수 시스템</p>
+            </div>
+            <div id="pumpStatus" class="px-6 py-3 rounded-full font-bold text-lg bg-gray-200 text-gray-600">
+              ⏸️ 대기중
+            </div>
+          </div>
+          
+          <div id="pumpMessage" style="display: none;" class="mt-4 p-4 bg-blue-50 rounded-xl">
+            <p class="text-blue-800 text-sm">
+              토양 습도가 70% 미만이므로 자동으로 물을 공급하고 있습니다.
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <div class="flex items-center gap-2 mb-4">
+            <span class="text-2xl">📈</span>
+            <h3 class="text-xl font-bold text-gray-800">습도 변화 추이</h3>
+          </div>
+          <canvas id="humidityChart" style="max-height: 250px;"></canvas>
+          <div class="mt-4 p-4 bg-gray-50 rounded-xl">
+            <p class="text-sm text-gray-600">
+              💡 <strong>자동 급수 기준:</strong> 습도 70% 미만 시 급수 시작, 70% 이상 시 급수 중단
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div id="disconnectedView" class="bg-white rounded-2xl shadow-lg p-8 text-center">
+        <div class="text-6xl mb-4">📡</div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">블루투스를 연결해주세요</h3>
+        <p class="text-gray-600 mb-4">
+          아두이노 스마트팜 기기와 연결하여 실시간 모니터링을 시작하세요.
+        </p>
+        <div class="text-left bg-blue-50 p-4 rounded-xl text-sm text-gray-700">
+          <p class="font-semibold mb-2">📌 연결 방법:</p>
+          <ol class="list-decimal list-inside space-y-1">
+            <li>블루투스 모듈(HC-05/HC-06 또는 HM-10)이 아두이노에 연결되어 있는지 확인</li>
+            <li>Chrome 또는 Edge 브라우저 사용</li>
+            <li>'블루투스 연결' 버튼 클릭</li>
+            <li>기기 목록에서 스마트팜 장치 선택</li>
+          </ol>
+          <p class="mt-3 text-xs text-gray-500">
+            * 테스트를 위해 '시뮬레이션 모드'를 사용할 수 있습니다.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    var isConnected = false;
+    var device = null;
+    var characteristic = null;
+    var simulationInterval = null;
+    var chart = null;
+    var chartData = [];
+    var deferredPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('installPrompt').classList.add('show');
+    });
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(choiceResult) {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('앱 설치 완료');
+          }
+          deferredPrompt = null;
+          closeInstallPrompt();
+        });
+      }
+    }
+
+    function closeInstallPrompt() {
+      document.getElementById('installPrompt').classList.remove('show');
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+          .then(function() { console.log('Service Worker 등록 완료'); })
+          .catch(function(err) { console.error('Service Worker 등록 실패:', err); });
+      });
+    }
+
+    function initChart() {
+      var ctx = document.getElementById('humidityChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: '습도 (%)',
+            data: [],
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100
+            }
+          }
+        }
+      });
+    }
+
+    function connectBluetooth() {
+      if (!navigator.bluetooth) {
+        alert('이 브라우저는 블루투스를 지원하지 않습니다.\nChrome이나 Edge를 사용해주세요.');
+        return;
+      }
+
+      navigator.bluetooth.requestDevice({
+        filters: [
+          { services: ['0000ffe0-0000-1000-8000-00805f9b34fb'] }
+        ],
+        optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+      })
+      .then(function(d) {
+        device = d;
+        return device.gatt.connect();
+      })
+      .then(function(server) {
+        return server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb');
+      })
+      .then(function(service) {
+        return service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb');
+      })
+      .then(function(char) {
+        characteristic = char;
+        return characteristic.startNotifications();
+      })
+      .then(function() {
+        characteristic.addEventListener('characteristicvaluechanged', handleDataReceived);
+        setConnected(true);
+        alert('블루투스 연결 성공! ✅');
+      })
+      .catch(function(error) {
+        console.error('블루투스 연결 실패:', error);
+        alert('블루투스 연결 실패: ' + error.message);
+      });
+    }
+
+    function handleDataReceived(event) {
+      var value = event.target.value;
+      var decoder = new TextDecoder('utf-8');
+      var data = decoder.decode(value);
+      
+      var humidityMatch = data.match(/H:(\d+)/);
+      var pumpMatch = data.match(/P:(\d+)/);
+      
+      if (humidityMatch) {
+        var humidity = parseInt(humidityMatch[1]);
+        updateHumidity(humidity);
+      }
+      
+      if (pumpMatch) {
+        var isPumpActive = pumpMatch[1] === '1';
+        updatePumpStatus(isPumpActive);
+      }
+    }
+
+    function startSimulation() {
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+      }
+      
+      setConnected(true);
+      
+      simulationInterval = setInterval(function() {
+        var humidity = Math.floor(Math.random() * 40) + 50;
+        updateHumidity(humidity);
+        updatePumpStatus(humidity < 70);
+      }, 2000);
+    }
+
+    function setConnected(connected) {
+      isConnected = connected;
+      document.getElementById('connectedView').style.display = connected ? 'block' : 'none';
+      document.getElementById('disconnectedView').style.display = connected ? 'none' : 'block';
+      
+      if (connected && !chart) {
+        setTimeout(function() { initChart(); }, 100);
+      }
+      
+      if (connected) {
+        document.getElementById('connectBtn').textContent = '🔌 연결 해제';
+        document.getElementById('connectBtn').onclick = disconnect;
+      } else {
+        document.getElementById('connectBtn').textContent = '📡 블루투스 연결';
+        document.getElementById('connectBtn').onclick = connectBluetooth;
+      }
+    }
+
+    function disconnect() {
+      if (device && device.gatt.connected) {
+        device.gatt.disconnect();
+      }
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+        simulationInterval = null;
+      }
+      setConnected(false);
+      chartData = [];
+    }
+
+    function updateHumidity(humidity) {
+      var humidityCard = document.getElementById('humidityCard');
+      var humidityValue = document.getElementById('humidityValue');
+      var humidityStatus = document.getElementById('humidityStatus');
+      
+      humidityValue.textContent = humidity + '%';
+      
+      if (humidity < 70) {
+        humidityCard.className = 'bg-red-50 border-2 border-red-200 rounded-2xl shadow-lg p-8 mb-6 transition-all';
+        humidityValue.className = 'text-7xl font-bold text-red-500 mb-4';
+        humidityStatus.innerHTML = '<span class="text-red-600 font-semibold">⚠️ 습도 부족 - 급수 필요</span>';
+      } else if (humidity < 80) {
+        humidityCard.className = 'bg-yellow-50 border-2 border-yellow-200 rounded-2xl shadow-lg p-8 mb-6 transition-all';
+        humidityValue.className = 'text-7xl font-bold text-yellow-500 mb-4';
+        humidityStatus.innerHTML = '<span class="text-yellow-600 font-semibold">💧 습도 적정</span>';
+      } else {
+        humidityCard.className = 'bg-green-50 border-2 border-green-200 rounded-2xl shadow-lg p-8 mb-6 transition-all';
+        humidityValue.className = 'text-7xl font-bold text-green-500 mb-4';
+        humidityStatus.innerHTML = '<span class="text-green-600 font-semibold">💧 습도 충분</span>';
+      }
+      
+      if (chart) {
+        var now = new Date();
+        var timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+        
+        chartData.push({ time: timeStr, humidity: humidity });
+        if (chartData.length > 10) chartData.shift();
+        
+        chart.data.labels = chartData.map(function(d) { return d.time; });
+        chart.data.datasets[0].data = chartData.map(function(d) { return d.humidity; });
+        chart.update();
+      }
+    }
+
+    function updatePumpStatus(isPumpActive) {
+      var pumpStatus = document.getElementById('pumpStatus');
+      var pumpMessage = document.getElementById('pumpMessage');
+      
+      if (isPumpActive) {
+        pumpStatus.className = 'px-6 py-3 rounded-full font-bold text-lg bg-blue-500 text-white pulse-animation';
+        pumpStatus.textContent = '🚰 작동중';
+        pumpMessage.style.display = 'block';
+      } else {
+        pumpStatus.className = 'px-6 py-3 rounded-full font-bold text-lg bg-gray-200 text-gray-600';
+        pumpStatus.textContent = '⏸️ 대기중';
+        pumpMessage.style.display = 'none';
+      }
+    }
+  </script>
+
+</body>
+</html>
