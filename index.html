@@ -22,16 +22,14 @@
 </head>
 <body class="text-gray-800">
 
-    <!-- Authentication Screen -->
-    <div id="auth-container" class="min-h-screen flex items-center justify-center p-4">
+    <!-- Login Screen -->
+    <div id="login-container" class="min-h-screen flex items-center justify-center p-4">
         <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
             <div class="text-center mb-8">
                 <h1 class="text-3xl font-bold text-gray-800">🌿</h1>
                 <h2 class="text-2xl font-bold text-gray-800 mt-2">Smart Farm 로그인</h2>
-                <p class="text-gray-500 mt-2">환영합니다! 계정에 로그인하거나 새로 만드세요.</p>
+                <p class="text-gray-500 mt-2">환영합니다!</p>
             </div>
-
-            <!-- Login / Signup Forms -->
             <form id="login-form">
                 <div class="space-y-4">
                     <div>
@@ -43,14 +41,53 @@
                         <input type="password" id="login-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
                     </div>
                 </div>
-                <p id="auth-error" class="text-red-500 text-sm mt-4 h-5"></p>
-                <div class="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button type="submit" id="login-btn" class="flex-1 w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">로그인</button>
-                    <button type="button" id="signup-btn" class="flex-1 w-full flex justify-center py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">회원가입</button>
+                <p id="login-error" class="text-red-500 text-sm mt-4 h-5"></p>
+                <div class="mt-6">
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">로그인</button>
                 </div>
             </form>
+            <p class="mt-6 text-center text-sm text-gray-600">
+                아직 계정이 없으신가요?
+                <button id="go-to-signup" class="font-medium text-blue-600 hover:text-blue-500">회원가입</button>
+            </p>
         </div>
     </div>
+
+    <!-- Signup Screen -->
+    <div id="signup-container" style="display: none;" class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-lg">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-800">🌿</h1>
+                <h2 class="text-2xl font-bold text-gray-800 mt-2">새 계정 만들기</h2>
+                <p class="text-gray-500 mt-2">스마트팜을 시작해보세요.</p>
+            </div>
+            <form id="signup-form">
+                <div class="space-y-4">
+                    <div>
+                        <label for="signup-email" class="block text-sm font-medium text-gray-700">이메일</label>
+                        <input type="email" id="signup-email" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-gray-700">비밀번호</label>
+                        <input type="password" id="signup-password" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="signup-password-confirm" class="block text-sm font-medium text-gray-700">비밀번호 확인</label>
+                        <input type="password" id="signup-password-confirm" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+                <p id="signup-error" class="text-red-500 text-sm mt-4 h-5"></p>
+                <div class="mt-6">
+                    <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">회원가입</button>
+                </div>
+            </form>
+            <p class="mt-6 text-center text-sm text-gray-600">
+                이미 계정이 있으신가요?
+                <button id="go-to-login" class="font-medium text-blue-600 hover:text-blue-500">로그인</button>
+            </p>
+        </div>
+    </div>
+
 
     <!-- Main App Container (hidden by default) -->
     <div id="app-container" style="display: none;" class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -284,13 +321,24 @@
         const db = getFirestore(app);
 
         // --- DOM Elements ---
-        const authContainer = document.getElementById('auth-container');
+        const loginContainer = document.getElementById('login-container');
+        const signupContainer = document.getElementById('signup-container');
         const appContainer = document.getElementById('app-container');
+        
         const loginForm = document.getElementById('login-form');
         const loginEmailInput = document.getElementById('login-email');
         const loginPasswordInput = document.getElementById('login-password');
-        const signupBtn = document.getElementById('signup-btn');
-        const authErrorEl = document.getElementById('auth-error');
+        const loginErrorEl = document.getElementById('login-error');
+        
+        const signupForm = document.getElementById('signup-form');
+        const signupEmailInput = document.getElementById('signup-email');
+        const signupPasswordInput = document.getElementById('signup-password');
+        const signupPasswordConfirmInput = document.getElementById('signup-password-confirm');
+        const signupErrorEl = document.getElementById('signup-error');
+
+        const goToSignupBtn = document.getElementById('go-to-signup');
+        const goToLoginBtn = document.getElementById('go-to-login');
+        
         const userEmailEl = document.getElementById('user-email');
         const logoutBtn = document.getElementById('logout-btn');
         const tabControl = document.getElementById('tab-control');
@@ -332,13 +380,15 @@
         onAuthStateChanged(auth, user => {
             if (user) {
                 currentUserId = user.uid;
-                authContainer.style.display = 'none';
+                loginContainer.style.display = 'none';
+                signupContainer.style.display = 'none';
                 appContainer.style.display = 'block';
                 userEmailEl.textContent = user.email;
                 listenToProfiles(currentUserId);
             } else {
                 currentUserId = null;
-                authContainer.style.display = 'flex';
+                loginContainer.style.display = 'flex';
+                signupContainer.style.display = 'none';
                 appContainer.style.display = 'none';
                 if (unsubscribeProfiles) unsubscribeProfiles();
                 settingsProfiles = {};
@@ -349,31 +399,49 @@
 
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            authErrorEl.textContent = '';
+            loginErrorEl.textContent = '';
             signInWithEmailAndPassword(auth, loginEmailInput.value, loginPasswordInput.value)
                 .catch(error => {
                     switch(error.code) {
-                        case 'auth/user-not-found': authErrorEl.textContent = '가입되지 않은 이메일입니다.'; break;
-                        case 'auth/wrong-password': authErrorEl.textContent = '비밀번호가 틀렸습니다.'; break;
-                        default: authErrorEl.textContent = '로그인에 실패했습니다.';
+                        case 'auth/user-not-found': loginErrorEl.textContent = '가입되지 않은 이메일입니다.'; break;
+                        case 'auth/wrong-password': loginErrorEl.textContent = '비밀번호가 틀렸습니다.'; break;
+                        default: loginErrorEl.textContent = '로그인에 실패했습니다.';
                     }
                 });
         });
 
-        signupBtn.addEventListener('click', () => {
-            authErrorEl.textContent = '';
-            if (loginPasswordInput.value.length < 6) { authErrorEl.textContent = '비밀번호는 6자리 이상이어야 합니다.'; return; }
-            createUserWithEmailAndPassword(auth, loginEmailInput.value, loginPasswordInput.value)
+        signupForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            signupErrorEl.textContent = '';
+            const email = signupEmailInput.value;
+            const password = signupPasswordInput.value;
+            const confirmPassword = signupPasswordConfirmInput.value;
+
+            if (password.length < 6) { signupErrorEl.textContent = '비밀번호는 6자리 이상이어야 합니다.'; return; }
+            if (password !== confirmPassword) { signupErrorEl.textContent = '비밀번호가 일치하지 않습니다.'; return; }
+            
+            createUserWithEmailAndPassword(auth, email, password)
                 .catch(error => {
                     switch(error.code) {
-                        case 'auth/email-already-in-use': authErrorEl.textContent = '이미 사용 중인 이메일입니다.'; break;
-                        case 'auth/invalid-email': authErrorEl.textContent = '유효하지 않은 이메일 형식입니다.'; break;
-                        default: authErrorEl.textContent = '회원가입에 실패했습니다.';
+                        case 'auth/email-already-in-use': signupErrorEl.textContent = '이미 사용 중인 이메일입니다.'; break;
+                        case 'auth/invalid-email': signupErrorEl.textContent = '유효하지 않은 이메일 형식입니다.'; break;
+                        default: signupErrorEl.textContent = '회원가입에 실패했습니다.';
                     }
                 });
         });
 
         logoutBtn.addEventListener('click', () => signOut(auth));
+        
+        // --- Page Navigation ---
+        goToSignupBtn.addEventListener('click', () => {
+            loginContainer.style.display = 'none';
+            signupContainer.style.display = 'flex';
+        });
+
+        goToLoginBtn.addEventListener('click', () => {
+            signupContainer.style.display = 'none';
+            loginContainer.style.display = 'flex';
+        });
         
         // --- Firestore Logic ---
         async function saveProfileToFirestore(profileName, profileData) {
@@ -388,24 +456,33 @@
         
         function listenToProfiles(userId) {
             if (unsubscribeProfiles) unsubscribeProfiles();
-            unsubscribeProfiles = onSnapshot(collection(db, 'users', userId, 'profiles'), (snapshot) => {
+            const profilesRef = collection(db, 'users', userId, 'profiles');
+            unsubscribeProfiles = onSnapshot(profilesRef, (snapshot) => {
                 const newProfiles = {};
-                snapshot.forEach(doc => newProfiles[doc.id] = doc.data());
-                settingsProfiles = newProfiles;
-
-                if (Object.keys(settingsProfiles).length === 0) {
-                     settingsProfiles = { '기본 설정': { icon: '🌱', targetHumidity: 65, targetSoil: 70 } };
-                     // Save the default profile for new users
-                     saveProfileToFirestore('기본 설정', settingsProfiles['기본 설정']);
-                }
+                let hasProfiles = false;
+                snapshot.forEach(doc => {
+                    newProfiles[doc.id] = doc.data();
+                    hasProfiles = true;
+                });
                 
-                updateProfileSelect();
-                const firstProfileName = Object.keys(settingsProfiles)[0];
-                if (firstProfileName) {
-                    profileSelect.value = firstProfileName;
-                    applyProfile(firstProfileName);
+                if (!hasProfiles) {
+                    const defaultProfile = { '기본 설정': { icon: '🌱', targetHumidity: 65, targetSoil: 70 } };
+                    saveProfileToFirestore('기본 설정', defaultProfile['기본 설정']);
+                } else {
+                    settingsProfiles = newProfiles;
+                    updateProfileSelect();
+                    const currentSelection = profileSelect.value;
+                    if(settingsProfiles[currentSelection]){
+                         applyProfile(currentSelection);
+                    } else {
+                        const firstProfileName = Object.keys(settingsProfiles)[0];
+                        if (firstProfileName) {
+                            profileSelect.value = firstProfileName;
+                            applyProfile(firstProfileName);
+                        }
+                    }
+                    updateProfileSummary();
                 }
-                updateProfileSummary();
             });
         }
         
@@ -436,13 +513,27 @@
 
         function updateProfileSummary() {
             if (!profileSummaryList) return; profileSummaryList.innerHTML = ''; let activePumps = 0;
-            if (Object.keys(settingsProfiles).length === 0) { profileSummaryList.innerHTML = '<p class="text-gray-500 text-sm col-span-full text-center">저장된 프로필이 없습니다.</p>'; activePumpCountEl.textContent = '0'; return; }
+            if (Object.keys(settingsProfiles).length === 0) { profileSummaryList.innerHTML = '<p class="text-gray-500 text-sm col-span-full text-center">프로필을 추가해주세요.</p>'; activePumpCountEl.textContent = '0'; return; }
             for (const profileName in settingsProfiles) {
                 const profile = settingsProfiles[profileName]; const isPumpActive = currentSoil < profile.targetSoil; const icon = profile.icon || '🌱'; if (isPumpActive) activePumps++;
                 const summaryCard = document.createElement('div');
                 summaryCard.className = isPumpActive ? 'bg-white rounded-xl p-4 flex flex-col items-center text-center transition-all shadow-md border-2 border-blue-500' : 'bg-white rounded-xl p-4 flex flex-col items-center text-center transition-all shadow-sm border border-gray-200 hover:shadow-md';
-                const statusHTML = isPumpActive ? `<div class="w-full mt-3 px-4 py-2 rounded-lg font-semibold text-sm bg-blue-100 text-blue-800 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg><span>작동중</span></div>` : `<div class="w-full mt-3 px-4 py-2 rounded-lg font-semibold text-sm bg-gray-100 text-gray-600 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span>대기중</span></div>`;
-                summaryCard.innerHTML = `<div class="text-3xl mb-2">${icon}</div><h4 class="font-bold text-gray-800">${profileName}</h4><p class="text-xs text-gray-500">급수 기준: <span class="font-semibold">${profile.targetSoil}%</span></p>${statusHTML}`;
+                
+                let statusTextHTML;
+                if(isPumpActive) {
+                    statusTextHTML = `<p class="text-xs text-red-600 font-semibold">상태: ${profile.targetSoil}% 미만</p>`;
+                } else {
+                    statusTextHTML = `<p class="text-xs text-green-600 font-semibold">상태: 양호</p>`;
+                }
+
+                const pumpStatusHTML = isPumpActive ? `<div class="w-full mt-3 px-4 py-2 rounded-lg font-semibold text-sm bg-blue-100 text-blue-800 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg><span>작동중</span></div>` : `<div class="w-full mt-3 px-4 py-2 rounded-lg font-semibold text-sm bg-gray-100 text-gray-600 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span>대기중</span></div>`;
+                
+                summaryCard.innerHTML = `
+                    <div class="text-3xl mb-2">${icon}</div>
+                    <h4 class="font-bold text-gray-800">${profileName}</h4>
+                    ${statusTextHTML}
+                    ${pumpStatusHTML}
+                `;
                 profileSummaryList.appendChild(summaryCard);
             }
             activePumpCountEl.textContent = activePumps; activePumpCountEl.classList.toggle('bg-blue-500', activePumps > 0); activePumpCountEl.classList.toggle('bg-gray-400', activePumps === 0);
@@ -461,20 +552,89 @@
             connectBtn.disabled = isConnected && type === 'simulation';
             [simulateBtn, connectBtn].forEach(btn => btn.classList.toggle('opacity-50', btn.disabled));
             [simulateBtn, connectBtn].forEach(btn => btn.classList.toggle('cursor-not-allowed', btn.disabled));
-
+            
+            const baseConnectHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.7 15 12l3 3.3"/><path d="M6 12h9"/><path d="M9 8.7 12 12l-3 3.3"/><circle cx="12" cy="12" r="10"/></svg><span>블루투스 연결</span>`;
+            const baseSimulateHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg><span>시뮬레이션 시작</span>`;
+            
             if (state) {
                 const btn = type === 'bluetooth' ? connectBtn : simulateBtn;
                 const stopFn = type === 'bluetooth' ? disconnect : stopSimulation;
-                btn.innerHTML = type === 'bluetooth' ? `...연결 해제...` : `...시뮬레이션 중지...`; // Simplified for brevity
+                btn.innerHTML = type === 'bluetooth' ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.7 15 12l3 3.3"/><path d="m6 17.3-3-3.3 3-3.3"/><path d="M18 15.3 15 12l3-3.3"/><path d="m6 8.7 3 3.3-3 3.3"/><path d="M9 12h6"/></svg><span>연결 해제</span>` : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg><span>시뮬레이션 중지</span>`;
                 btn.onclick = stopFn;
-                btn.classList.remove('bg-blue-500', 'bg-gray-500');
+                btn.classList.remove('bg-blue-500', 'hover:bg-blue-600', 'bg-gray-500', 'hover:bg-gray-600');
                 btn.classList.add('bg-red-500', 'hover:bg-red-600');
             } else {
                 resetCharts();
-                connectBtn.innerHTML = `...블루투스 연결...`; connectBtn.onclick = connectBluetooth;
-                simulateBtn.innerHTML = `...시뮬레이션 시작...`; simulateBtn.onclick = startSimulation;
-                connectBtn.classList.remove('bg-red-500'); connectBtn.classList.add('bg-blue-500');
-                simulateBtn.classList.remove('bg-red-500'); simulateBtn.classList.add('bg-gray-500');
+                connectBtn.innerHTML = baseConnectHTML; connectBtn.onclick = connectBluetooth;
+                simulateBtn.innerHTML = baseSimulateHTML; simulateBtn.onclick = startSimulation;
+                connectBtn.classList.remove('bg-red-500', 'hover:bg-red-600'); connectBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                simulateBtn.classList.remove('bg-red-500', 'hover:bg-red-600'); simulateBtn.classList.add('bg-gray-500', 'hover:bg-gray-600');
+            }
+        }
+
+        function connectBluetooth() {
+            if (!navigator.bluetooth) {
+                console.error('Web Bluetooth is not supported in this browser.');
+                return;
+            }
+            navigator.bluetooth.requestDevice({
+                filters: [{ services: ['0000ffe0-0000-1000-8000-00805f9b34fb'] }],
+                optionalServices: ['0000ffe0-0000-1000-8000-00805f9b34fb']
+            })
+            .then(d => {
+                device = d;
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                return device.gatt.connect();
+            })
+            .then(server => server.getPrimaryService('0000ffe0-0000-1000-8000-00805f9b34fb'))
+            .then(service => service.getCharacteristic('0000ffe1-0000-1000-8000-00805f9b34fb'))
+            .then(char => {
+                characteristic = char;
+                return characteristic.startNotifications();
+            })
+            .then(() => {
+                characteristic.addEventListener('characteristicvaluechanged', handleDataReceived);
+                setConnected(true, 'bluetooth');
+            })
+            .catch(error => {
+                console.error('Bluetooth connection failed:', error);
+            });
+        }
+
+        function disconnect() {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            } else if (simulationInterval) {
+                stopSimulation();
+            } else {
+                setConnected(false);
+            }
+        }
+
+        function onDisconnected() {
+            setConnected(false);
+            console.log('Bluetooth device disconnected.');
+        }
+
+        function handleDataReceived(event) {
+            const value = event.target.value;
+            const decoder = new TextDecoder('utf-8');
+            const dataString = decoder.decode(value);
+            
+            try {
+                const tempMatch = dataString.match(/T:([\d.]+)/);
+                const humidityMatch = dataString.match(/H:(\d+)/);
+                const soilMatch = dataString.match(/S:(\d+)/);
+                const lightMatch = dataString.match(/L:(\d+)/);
+
+                const temp = tempMatch ? parseFloat(tempMatch[1]) : currentTemp;
+                const humidity = humidityMatch ? parseInt(humidityMatch[1]) : currentHumidity;
+                const soil = soilMatch ? parseInt(soilMatch[1]) : currentSoil;
+                const light = lightMatch ? parseInt(lightMatch[1]) : currentLight;
+
+                updateSensorData(temp, humidity, soil, light);
+            } catch (error) {
+                console.error("Error parsing data:", error, "Received:", dataString);
             }
         }
 
@@ -512,13 +672,7 @@
         
         initCharts();
         setConnected(false);
-
-        // Expose functions for Firebase module
-        window.mainApp = { settingsProfiles, updateProfileSelect, updateProfileSummary, applyProfile, profileSelect };
-      })();
     </script>
 </body>
 </html>
-
-    
 
