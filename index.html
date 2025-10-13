@@ -142,7 +142,6 @@
 
              <!-- Sensor Grid -->
              <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <!-- Temperature Card, Humidity, Soil, Light cards go here, same as before -->
                  <!-- Temperature Card -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
                     <div class="w-full flex items-center justify-between mb-4">
@@ -225,7 +224,6 @@
              </main>
              <!-- Chart Grid -->
              <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Chart cards go here, same as before -->
                  <!-- Temperature Chart -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">온도 변화 (°C)</h3>
@@ -250,7 +248,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Firebase SDK and App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
         import { 
@@ -280,10 +278,12 @@
             measurementId: "G-2M1X8VZJVE"
         };
 
+        // --- Initialize Firebase ---
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- DOM Elements ---
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const loginForm = document.getElementById('login-form');
@@ -293,10 +293,42 @@
         const authErrorEl = document.getElementById('auth-error');
         const userEmailEl = document.getElementById('user-email');
         const logoutBtn = document.getElementById('logout-btn');
-        
+        const tabControl = document.getElementById('tab-control');
+        const tabStats = document.getElementById('tab-stats');
+        const contentControl = document.getElementById('content-control');
+        const contentStats = document.getElementById('content-stats');
+        const tempValueEl = document.getElementById('temp-value');
+        const tempProgressEl = document.getElementById('temp-progress');
+        const humidityValueEl = document.getElementById('humidity-value');
+        const humidityProgressEl = document.getElementById('humidity-progress');
+        const soilValueEl = document.getElementById('soil-value');
+        const soilProgressEl = document.getElementById('soil-progress');
+        const lightValueEl = document.getElementById('light-value');
+        const lightProgressEl = document.getElementById('light-progress');
+        const humidityInput = document.getElementById('humidity-input');
+        const soilInput = document.getElementById('soil-input');
+        const connectBtn = document.getElementById('connectBtn');
+        const simulateBtn = document.getElementById('simulateBtn');
+        const profileSelect = document.getElementById('profile-select');
+        const profileNameInput = document.getElementById('profile-name-input');
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        const deleteProfileBtn = document.getElementById('delete-profile-btn');
+        const profileSummaryList = document.getElementById('profile-summary-list');
+        const iconPicker = document.getElementById('icon-picker');
+        const activePumpCountEl = document.getElementById('active-pump-count');
+
+        // --- State Variables ---
         let currentUserId = null;
         let unsubscribeProfiles = null; 
+        let device = null, characteristic = null, isConnected = false, simulationInterval = null;
+        let tempChart, humidityChart, soilChart, lightChart;
+        let settingsProfiles = {};
+        let selectedIcon = '🌱';
+        const circumference = 2 * Math.PI * 45;
+        let currentTemp = 0.0, currentHumidity = 0, currentSoil = 0, currentLight = 0;
+        let targetHumidity = 65, targetSoil = 70;
 
+        // --- Firebase Auth Logic ---
         onAuthStateChanged(auth, user => {
             if (user) {
                 currentUserId = user.uid;
@@ -309,9 +341,9 @@
                 authContainer.style.display = 'flex';
                 appContainer.style.display = 'none';
                 if (unsubscribeProfiles) unsubscribeProfiles();
-                mainScript.settingsProfiles = {};
-                mainScript.updateProfileSelect();
-                mainScript.updateProfileSummary();
+                settingsProfiles = {};
+                updateProfileSelect();
+                updateProfileSummary();
             }
         });
 
@@ -343,6 +375,7 @@
 
         logoutBtn.addEventListener('click', () => signOut(auth));
         
+        // --- Firestore Logic ---
         async function saveProfileToFirestore(profileName, profileData) {
             if (!currentUserId) return;
             await setDoc(doc(db, 'users', currentUserId, 'profiles', profileName), profileData);
@@ -358,84 +391,49 @@
             unsubscribeProfiles = onSnapshot(collection(db, 'users', userId, 'profiles'), (snapshot) => {
                 const newProfiles = {};
                 snapshot.forEach(doc => newProfiles[doc.id] = doc.data());
-                mainScript.settingsProfiles = newProfiles;
+                settingsProfiles = newProfiles;
 
-                if (Object.keys(mainScript.settingsProfiles).length === 0) {
-                     mainScript.settingsProfiles = { '기본 설정': { icon: '🌱', targetHumidity: 65, targetSoil: 70 } };
+                if (Object.keys(settingsProfiles).length === 0) {
+                     settingsProfiles = { '기본 설정': { icon: '🌱', targetHumidity: 65, targetSoil: 70 } };
+                     // Save the default profile for new users
+                     saveProfileToFirestore('기본 설정', settingsProfiles['기본 설정']);
                 }
                 
-                mainScript.updateProfileSelect();
-                const firstProfileName = Object.keys(mainScript.settingsProfiles)[0];
+                updateProfileSelect();
+                const firstProfileName = Object.keys(settingsProfiles)[0];
                 if (firstProfileName) {
-                    mainScript.profileSelect.value = firstProfileName;
-                    mainScript.applyProfile(firstProfileName);
+                    profileSelect.value = firstProfileName;
+                    applyProfile(firstProfileName);
                 }
-                mainScript.updateProfileSummary();
+                updateProfileSummary();
             });
         }
         
-        window.firebaseAPI = { saveProfile: saveProfileToFirestore, deleteProfile: deleteProfileFromFirestore };
-    </script>
-
-    <script id="main-script">
-      const mainScript = (() => {
-        const tabControl = document.getElementById('tab-control');
-        const tabStats = document.getElementById('tab-stats');
-        const contentControl = document.getElementById('content-control');
-        const contentStats = document.getElementById('content-stats');
-        const tempValueEl = document.getElementById('temp-value');
-        const tempProgressEl = document.getElementById('temp-progress');
-        const humidityValueEl = document.getElementById('humidity-value');
-        const humidityProgressEl = document.getElementById('humidity-progress');
-        const soilValueEl = document.getElementById('soil-value');
-        const soilProgressEl = document.getElementById('soil-progress');
-        const lightValueEl = document.getElementById('light-value');
-        const lightProgressEl = document.getElementById('light-progress');
-        const humidityInput = document.getElementById('humidity-input');
-        const soilInput = document.getElementById('soil-input');
-        const connectBtn = document.getElementById('connectBtn');
-        const simulateBtn = document.getElementById('simulateBtn');
-        const profileSelect = document.getElementById('profile-select');
-        const profileNameInput = document.getElementById('profile-name-input');
-        const saveProfileBtn = document.getElementById('save-profile-btn');
-        const deleteProfileBtn = document.getElementById('delete-profile-btn');
-        const profileSummaryList = document.getElementById('profile-summary-list');
-        const iconPicker = document.getElementById('icon-picker');
-        const activePumpCountEl = document.getElementById('active-pump-count');
-
-        let device = null, characteristic = null, isConnected = false, simulationInterval = null;
-        let tempChart, humidityChart, soilChart, lightChart;
-        let settingsProfiles = {};
-        let selectedIcon = '🌱';
-
-        const circumference = 2 * Math.PI * 45;
-        [tempProgressEl, humidityProgressEl, soilProgressEl, lightProgressEl].forEach(el => {
-            el.style.strokeDasharray = circumference;
-            el.style.strokeDashoffset = circumference;
-        });
-
+        // --- App Logic ---
         function updateGauge(element, value, max) { const offset = circumference - (value / max) * circumference; element.style.strokeDashoffset = offset; }
-
-        let currentTemp = 0.0, currentHumidity = 0, currentSoil = 0, currentLight = 0;
-        let targetHumidity = 65, targetSoil = 70;
-
+        
         function createSensorChart(canvasId, label, color, min, max) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             return new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: label, data: [], borderColor: color, backgroundColor: color + '20', tension: 0.4, fill: true, pointBackgroundColor: color, pointRadius: 2, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min, max, ticks: { color: '#6b7280' } }, x: { ticks: { color: '#6b7280' } } }, plugins: { legend: { display: false } } } });
         }
+        
         function initCharts() { tempChart = createSensorChart('tempChart', '온도', '#ef4444', 0, 50); humidityChart = createSensorChart('humidityChart', '습도', '#3b82f6', 0, 100); soilChart = createSensorChart('soilChart', '토양 수분', '#22c55e', 0, 100); lightChart = createSensorChart('lightChart', '조도', '#f59e0b', 0, 2000); }
+        
         function resetCharts() { [tempChart, humidityChart, soilChart, lightChart].forEach(chart => { if (chart) { chart.data.labels = []; chart.data.datasets[0].data = []; chart.update(); } }); }
+        
         function addDataToCharts(temp, humidity, soil, light) {
             const charts = [tempChart, humidityChart, soilChart, lightChart]; const data = [temp, humidity, soil, light];
             const now = new Date(); const timeStr = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
             charts.forEach((chart, index) => { if (!chart) return; const labels = chart.data.labels; labels.push(timeStr); chart.data.datasets[0].data.push(data[index]); if (labels.length > 15) { labels.shift(); chart.data.datasets[0].data.shift(); } chart.update('none'); });
         }
+
         function updateSensorData(temp, humidity, soil, light) {
             currentTemp = temp; currentHumidity = humidity; currentSoil = soil; currentLight = light;
             tempValueEl.textContent = `${currentTemp.toFixed(1)}℃`; humidityValueEl.textContent = `${currentHumidity.toFixed(0)}%`; soilValueEl.textContent = `${currentSoil.toFixed(0)}%`; lightValueEl.textContent = `${currentLight.toFixed(0)}lx`;
             updateGauge(tempProgressEl, currentTemp, 50); updateGauge(humidityProgressEl, currentHumidity, 100); updateGauge(soilProgressEl, currentSoil, 100); updateGauge(lightProgressEl, currentLight, 2000);
             updateProfileSummary(); addDataToCharts(temp, humidity, soil, light);
         }
+
         function updateProfileSummary() {
             if (!profileSummaryList) return; profileSummaryList.innerHTML = ''; let activePumps = 0;
             if (Object.keys(settingsProfiles).length === 0) { profileSummaryList.innerHTML = '<p class="text-gray-500 text-sm col-span-full text-center">저장된 프로필이 없습니다.</p>'; activePumpCountEl.textContent = '0'; return; }
@@ -449,36 +447,40 @@
             }
             activePumpCountEl.textContent = activePumps; activePumpCountEl.classList.toggle('bg-blue-500', activePumps > 0); activePumpCountEl.classList.toggle('bg-gray-400', activePumps === 0);
         }
-        function connectBluetooth() { /* ... BT logic ... */ }
-        function disconnect() { /* ... BT logic ... */ }
-        function onDisconnected() { /* ... BT logic ... */ }
-        function handleDataReceived(event) { /* ... BT logic ... */ }
+
         function startSimulation() {
              if (simulationInterval) return; setConnected(true, 'simulation');
              simulationInterval = setInterval(() => { updateSensorData(fluctuate(currentTemp, 10, 40, 0.5), fluctuate(currentHumidity, 20, 90, 1), fluctuate(currentSoil, 10, 80, 0.8), fluctuate(currentLight, 100, 1500, 50)); }, 2000);
         }
         function stopSimulation() { if (simulationInterval) { clearInterval(simulationInterval); simulationInterval = null; } setConnected(false); }
         function fluctuate(value, min, max, amount) { let change = (Math.random() - 0.5) * amount; let newValue = value + change; return Math.max(min, Math.min(max, newValue)); }
+        
         function setConnected(state, type = '') {
             isConnected = state;
+            simulateBtn.disabled = isConnected && type === 'bluetooth';
+            connectBtn.disabled = isConnected && type === 'simulation';
+            [simulateBtn, connectBtn].forEach(btn => btn.classList.toggle('opacity-50', btn.disabled));
+            [simulateBtn, connectBtn].forEach(btn => btn.classList.toggle('cursor-not-allowed', btn.disabled));
+
             if (state) {
-                 if (type === 'bluetooth') {
-                    simulateBtn.disabled = true; simulateBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    connectBtn.innerHTML = `...연결 해제...`; // Shortened for brevity
-                    connectBtn.onclick = disconnect; connectBtn.className = '...red button...';
-                } else if (type === 'simulation') {
-                    connectBtn.disabled = true; connectBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                    simulateBtn.innerHTML = `...시뮬레이션 중지...`; // Shortened
-                    simulateBtn.onclick = stopSimulation; simulateBtn.className = '...red button...';
-                }
+                const btn = type === 'bluetooth' ? connectBtn : simulateBtn;
+                const stopFn = type === 'bluetooth' ? disconnect : stopSimulation;
+                btn.innerHTML = type === 'bluetooth' ? `...연결 해제...` : `...시뮬레이션 중지...`; // Simplified for brevity
+                btn.onclick = stopFn;
+                btn.classList.remove('bg-blue-500', 'bg-gray-500');
+                btn.classList.add('bg-red-500', 'hover:bg-red-600');
             } else {
                 resetCharts();
-                connectBtn.disabled = false; connectBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-500', 'hover:bg-red-600'); connectBtn.classList.add('bg-blue-500', 'hover:bg-blue-600'); connectBtn.innerHTML = `...블루투스 연결...`; connectBtn.onclick = connectBluetooth;
-                simulateBtn.disabled = false; simulateBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'bg-red-500', 'hover:bg-red-600'); simulateBtn.classList.add('bg-gray-500', 'hover:bg-gray-600'); simulateBtn.innerHTML = `...시뮬레이션 시작...`; simulateBtn.onclick = startSimulation;
+                connectBtn.innerHTML = `...블루투스 연결...`; connectBtn.onclick = connectBluetooth;
+                simulateBtn.innerHTML = `...시뮬레이션 시작...`; simulateBtn.onclick = startSimulation;
+                connectBtn.classList.remove('bg-red-500'); connectBtn.classList.add('bg-blue-500');
+                simulateBtn.classList.remove('bg-red-500'); simulateBtn.classList.add('bg-gray-500');
             }
         }
-        tabControl.addEventListener('click', () => { contentControl.style.display = 'block'; contentStats.style.display = 'none'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabStats.className = '...inactive...'; });
-        tabStats.addEventListener('click', () => { contentStats.style.display = 'block'; contentControl.style.display = 'none'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = '...inactive...'; });
+
+        tabControl.addEventListener('click', () => { contentControl.style.display = 'block'; contentStats.style.display = 'none'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
+        tabStats.addEventListener('click', () => { contentStats.style.display = 'block'; contentControl.style.display = 'none'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
+        
         function updateProfileSelect() {
             const currentSelection = profileSelect.value; profileSelect.innerHTML = '';
             for (const profileName in settingsProfiles) { const option = document.createElement('option'); option.value = profileName; option.textContent = profileName; profileSelect.appendChild(option); }
@@ -497,11 +499,11 @@
         saveProfileBtn.addEventListener('click', () => {
             const profileName = profileNameInput.value.trim(); if (!profileName) { profileNameInput.focus(); return; }
             const profileData = { icon: selectedIcon, targetHumidity: parseInt(humidityInput.value), targetSoil: parseInt(soilInput.value) };
-            window.firebaseAPI.saveProfile(profileName, profileData);
+            saveProfileToFirestore(profileName, profileData);
         });
         deleteProfileBtn.addEventListener('click', () => {
             const selectedProfile = profileSelect.value; if (!selectedProfile || Object.keys(settingsProfiles).length <= 1) { return; }
-            window.firebaseAPI.deleteProfile(selectedProfile);
+            deleteProfileFromFirestore(selectedProfile);
         });
         profileSelect.addEventListener('change', () => { applyProfile(profileSelect.value); });
         iconPicker.addEventListener('click', (e) => { if (e.target.classList.contains('icon-picker-item')) { selectIcon(e.target.textContent); } });
@@ -511,10 +513,12 @@
         initCharts();
         setConnected(false);
 
-        return { settingsProfiles, updateProfileSelect, updateProfileSummary, applyProfile, profileSelect };
+        // Expose functions for Firebase module
+        window.mainApp = { settingsProfiles, updateProfileSelect, updateProfileSummary, applyProfile, profileSelect };
       })();
     </script>
-
 </body>
 </html>
+
+    
 
