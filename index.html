@@ -6,6 +6,7 @@
     <title>Smart Farm Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -176,6 +177,7 @@
         <div class="mb-6 border-b border-gray-200">
             <nav class="flex -mb-px space-x-6" aria-label="Tabs">
                 <button id="tab-control" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">제어</button>
+                <button id="tab-crops" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent">작물</button>
                 <button id="tab-stats" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent">통계</button>
             </nav>
         </div>
@@ -206,8 +208,8 @@
             </div>
         </div>
         
-        <!-- Statistics Content (Hidden by default) -->
-        <div id="content-stats" style="display: none;">
+        <!-- Crops Content (previously stats) -->
+        <div id="content-crops" style="display: none;">
             <!-- Settings Profile Management -->
             <div class="mb-6 bg-white p-6 rounded-2xl shadow-md border border-gray-200">
                  <h3 class="text-lg font-semibold text-gray-800 mb-4">설정 프로필 관리</h3>
@@ -352,6 +354,25 @@
                 </div>
              </div>
         </div>
+        
+        <!-- NEW Statistics/History Content -->
+        <div id="content-stats" style="display: none;">
+            <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">날짜별 데이터 조회</h3>
+                    <div class="flex items-center gap-2">
+                        <label for="history-date-picker" class="text-sm font-medium text-gray-700">날짜 선택:</label>
+                        <input type="date" id="history-date-picker" class="border-gray-300 rounded-md shadow-sm">
+                    </div>
+                </div>
+                <div id="history-chart-container" class="h-96 relative">
+                    <canvas id="historyChart"></canvas>
+                    <div id="history-no-data" class="absolute inset-0 flex items-center justify-center text-gray-500" style="display: none;">
+                        <p>해당 날짜에 기록된 데이터가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK and App Logic -->
@@ -372,8 +393,16 @@
             collection,
             doc,
             setDoc,
+            getDoc,
             deleteDoc,
-            onSnapshot
+            onSnapshot,
+            addDoc,
+            serverTimestamp,
+            query,
+            where,
+            orderBy,
+            getDocs,
+            Timestamp
         } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
         // User's Firebase Configuration
@@ -434,8 +463,10 @@
         const logoutBtn = document.getElementById('logout-btn');
         const editProfileBtn = document.getElementById('edit-profile-btn');
         const tabControl = document.getElementById('tab-control');
+        const tabCrops = document.getElementById('tab-crops');
         const tabStats = document.getElementById('tab-stats');
         const contentControl = document.getElementById('content-control');
+        const contentCrops = document.getElementById('content-crops');
         const contentStats = document.getElementById('content-stats');
         const tempValueEl = document.getElementById('temp-value');
         const tempProgressEl = document.getElementById('temp-progress');
@@ -456,12 +487,15 @@
         const profileSummaryList = document.getElementById('profile-summary-list');
         const iconPicker = document.getElementById('icon-picker');
         const activePumpCountEl = document.getElementById('active-pump-count');
+        const historyDatePicker = document.getElementById('history-date-picker');
+        const historyChartContainer = document.getElementById('history-chart-container');
+        const historyNoDataEl = document.getElementById('history-no-data');
 
         // --- State Variables ---
         let currentUserId = null;
         let unsubscribeProfiles = null; 
-        let device = null, characteristic = null, isConnected = false, simulationInterval = null;
-        let tempChart, humidityChart, soilChart, lightChart;
+        let device = null, characteristic = null, isConnected = false, simulationInterval = null, dataLogInterval = null;
+        let tempChart, humidityChart, soilChart, lightChart, historyChart;
         let settingsProfiles = {};
         let selectedIcon = '🌱';
         const circumference = 2 * Math.PI * 45;
@@ -549,7 +583,7 @@
                     resetErrorEl.textContent = '이메일 전송에 실패했습니다. 이메일을 확인해주세요.';
                 });
         });
-
+        
         editProfileForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             editProfileErrorEl.textContent = '';
@@ -562,13 +596,10 @@
             if (!user) return;
 
             try {
-                // Update nickname
                 if (newNickname && newNickname !== user.displayName) {
                     await updateProfile(user, { displayName: newNickname });
-                    dashboardTitleEl.textContent = `🌿 ${newNickname}님의 스마트팜`;
                 }
 
-                // Update password
                 if (newPassword) {
                     const passwordRegex = /^(?=.*[A-Za-z])(?=.*[!@#$%^&*]).{8,}$/;
                     if (!passwordRegex.test(newPassword)) {
@@ -590,7 +621,7 @@
 
             } catch (error) {
                 console.error("Profile update error:", error);
-                editProfileErrorEl.textContent = "정보 업데이트에 실패했습니다.";
+                editProfileErrorEl.textContent = "정보 업데이트에 실패했습니다. 다시 로그인 후 시도해주세요.";
             }
         });
 
@@ -628,6 +659,23 @@
             if (!currentUserId) return;
             await deleteDoc(doc(db, 'users', currentUserId, 'profiles', profileName));
         }
+
+        async function logDataToFirestore() {
+            if (!currentUserId || !isConnected) return;
+            try {
+                const dataLog = {
+                    temp: currentTemp,
+                    humidity: currentHumidity,
+                    soil: currentSoil,
+                    light: currentLight,
+                    timestamp: serverTimestamp()
+                };
+                await addDoc(collection(db, 'users', currentUserId, 'historicalData'), dataLog);
+                console.log("Logged data to Firestore:", dataLog);
+            } catch (error) {
+                console.error("Error logging data:", error);
+            }
+        }
         
         function listenToProfiles(userId) {
             if (unsubscribeProfiles) unsubscribeProfiles();
@@ -662,7 +710,7 @@
             return new Chart(ctx, { type: 'line', data: { labels: [], datasets: [{ label: label, data: [], borderColor: color, backgroundColor: color + '20', tension: 0.4, fill: true, pointBackgroundColor: color, pointRadius: 2, }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { min, max, ticks: { color: '#6b7280' } }, x: { ticks: { color: '#6b7280' } } }, plugins: { legend: { display: false } } } });
         }
         
-        function initCharts() { tempChart = createSensorChart('tempChart', '온도', '#ef4444', 0, 50); humidityChart = createSensorChart('humidityChart', '습도', '#3b82f6', 0, 100); soilChart = createSensorChart('soilChart', '토양 수분', '#22c55e', 0, 100); lightChart = createSensorChart('lightChart', '조도', '#f59e0b', 0, 2000); }
+        function initCharts() { tempChart = createSensorChart('tempChart', '온도', '#ef4444', 0, 50); humidityChart = createSensorChart('humidityChart', '습도', '#3b82f6', 0, 100); soilChart = createSensorChart('soilChart', '토양 수분', '#22c55e', 0, 100); lightChart = createSensorChart('lightChart', '조도', '#f59e0b', 0, 2000); initHistoryChart();}
         
         function resetCharts() { [tempChart, humidityChart, soilChart, lightChart].forEach(chart => { if (chart) { chart.data.labels = []; chart.data.datasets[0].data = []; chart.update(); } }); }
         
@@ -714,6 +762,8 @@
         
         function setConnected(state, type = '') {
             isConnected = state;
+            if (dataLogInterval) clearInterval(dataLogInterval);
+
             simulateBtn.disabled = isConnected && type === 'bluetooth';
             connectBtn.disabled = isConnected && type === 'simulation';
             [simulateBtn, connectBtn].forEach(btn => btn.classList.toggle('opacity-50', btn.disabled));
@@ -723,6 +773,7 @@
             const baseSimulateHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg><span>시뮬레이션 시작</span>`;
             
             if (state) {
+                dataLogInterval = setInterval(logDataToFirestore, 10 * 60 * 1000); // Log data every 10 minutes
                 const btn = type === 'bluetooth' ? connectBtn : simulateBtn;
                 const stopFn = type === 'bluetooth' ? disconnect : stopSimulation;
                 btn.innerHTML = type === 'bluetooth' ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.7 15 12l3 3.3"/><path d="m6 17.3-3-3.3 3-3.3"/><path d="M18 15.3 15 12l3-3.3"/><path d="m6 8.7 3 3.3-3 3.3"/><path d="M9 12h6"/></svg><span>연결 해제</span>` : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg><span>시뮬레이션 중지</span>`;
@@ -759,8 +810,9 @@
             } catch (error) { console.error("Error parsing data:", error, "Received:", dataString); }
         }
 
-        tabControl.addEventListener('click', () => { contentControl.style.display = 'block'; contentStats.style.display = 'none'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
-        tabStats.addEventListener('click', () => { contentStats.style.display = 'block'; contentControl.style.display = 'none'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
+        tabControl.addEventListener('click', () => { contentControl.style.display = 'block'; contentCrops.style.display = 'none'; contentStats.style.display = 'none'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabCrops.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
+        tabCrops.addEventListener('click', () => { contentControl.style.display = 'none'; contentCrops.style.display = 'block'; contentStats.style.display = 'none'; tabCrops.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
+        tabStats.addEventListener('click', () => { contentControl.style.display = 'none'; contentCrops.style.display = 'none'; contentStats.style.display = 'block'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; tabCrops.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
         
         function updateProfileSelect() {
             const currentSelection = profileSelect.value; profileSelect.innerHTML = '';
@@ -791,7 +843,67 @@
         humidityInput.addEventListener('change', (e) => { let v=parseInt(e.target.value); v=isNaN(v)?0:Math.max(0,Math.min(100,v)); e.target.value=v; targetHumidity=v; });
         soilInput.addEventListener('change', (e) => { let v=parseInt(e.target.value); v=isNaN(v)?0:Math.max(0,Math.min(100,v)); e.target.value=v; targetSoil=v; updateProfileSummary(); });
         
+        function initHistoryChart() {
+            const ctx = document.getElementById('historyChart').getContext('2d');
+            historyChart = new Chart(ctx, {
+                type: 'line',
+                data: { datasets: [
+                    { label: '온도 (°C)', data: [], borderColor: '#ef4444', yAxisID: 'yPercent' },
+                    { label: '습도 (%)', data: [], borderColor: '#3b82f6', yAxisID: 'yPercent' },
+                    { label: '토양 수분 (%)', data: [], borderColor: '#22c55e', yAxisID: 'yPercent' },
+                    { label: '조도 (lx)', data: [], borderColor: '#f59e0b', yAxisID: 'yLight' },
+                ]},
+                options: { responsive: true, maintainAspectRatio: false, scales: { 
+                    x: { type: 'time', time: { unit: 'hour' }, ticks: { color: '#6b7280' } },
+                    yPercent: { type: 'linear', position: 'left', min: 0, max: 100, title: { display: true, text: '온도(℃) / 습도(%)' }, ticks: { color: '#6b7280' } },
+                    yLight: { type: 'linear', position: 'right', min: 0, title: { display: true, text: '조도(lx)' }, grid: { drawOnChartArea: false }, ticks: { color: '#6b7280' } },
+                }}
+            });
+        }
+
+        async function fetchHistoryData(date) {
+            if (!currentUserId) return;
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const q = query(collection(db, 'users', currentUserId, 'historicalData'), 
+                where('timestamp', '>=', Timestamp.fromDate(startOfDay)),
+                where('timestamp', '<=', Timestamp.fromDate(endOfDay)),
+                orderBy('timestamp')
+            );
+            
+            const querySnapshot = await getDocs(q);
+            const data = { temp: [], humidity: [], soil: [], light: [] };
+            
+            querySnapshot.forEach((doc) => {
+                const docData = doc.data();
+                const timestamp = docData.timestamp.toDate();
+                data.temp.push({ x: timestamp, y: docData.temp });
+                data.humidity.push({ x: timestamp, y: docData.humidity });
+                data.soil.push({ x: timestamp, y: docData.soil });
+                data.light.push({ x: timestamp, y: docData.light });
+            });
+
+            if (querySnapshot.empty) {
+                historyNoDataEl.style.display = 'flex';
+                historyChart.data.datasets.forEach(ds => ds.data = []);
+            } else {
+                historyNoDataEl.style.display = 'none';
+                historyChart.data.datasets[0].data = data.temp;
+                historyChart.data.datasets[1].data = data.humidity;
+                historyChart.data.datasets[2].data = data.soil;
+                historyChart.data.datasets[3].data = data.light;
+            }
+            historyChart.update();
+        }
+
+        historyDatePicker.addEventListener('change', (e) => fetchHistoryData(e.target.value));
+
         initCharts();
+        historyDatePicker.valueAsDate = new Date();
+        fetchHistoryData(historyDatePicker.value);
         setConnected(false);
     </script>
 </body>
