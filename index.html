@@ -746,7 +746,7 @@
 
                 summaryCard.appendChild(cardIcon);
                 summaryCard.appendChild(cardTitle);
-                summaryCard.innerHTML += `<p class="text-xs text-gray-500">급수 기준: <span class="font-semibold">${profile.targetSoil}%</span></p>` + pumpStatusHTML;
+                summaryCard.innerHTML += `<p class="text-xs text-gray-500">현재: ${currentSoil}% / 기준: ${profile.targetSoil}%</p>` + pumpStatusHTML;
 
                 profileSummaryList.appendChild(summaryCard);
             }
