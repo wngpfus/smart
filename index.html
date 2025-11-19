@@ -33,7 +33,7 @@
         /* Chat UI Improvements */
         .chat-container { display: flex; flex-direction: column; gap: 1rem; }
         
-        .chat-message { display: flex; align-items: flex-start; max-width: 80%; margin-bottom: 12px; }
+        .chat-message { display: flex; align-items: flex-start; max-width: 80%; margin-bottom: 0; } /* margin-bottom removed as gap handles it */
         .chat-message.user { align-self: flex-end; flex-direction: row-reverse; }
         .chat-message.ai { align-self: flex-start; }
 
@@ -459,7 +459,7 @@
                     </h3>
                 </div>
                 
-                <div id="chat-history" class="flex-1 overflow-y-auto mb-4 space-y-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                <div id="chat-history" class="flex-1 overflow-y-auto mb-4 flex flex-col gap-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
                     <div class="chat-message ai">
                         <div class="chat-avatar">🤖</div>
                         <div class="chat-bubble">
