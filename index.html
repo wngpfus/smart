@@ -18,7 +18,16 @@
         @keyframes pulse-frames { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        .icon-picker-item.selected { border-color: #3b82f6; transform: scale(1.1); }
+        .icon-picker-item.selected { border-color: #3b82f6; transform: scale(1.1); background-color: #eff6ff; }
+        .plant-category-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
+        /* Toggle Switch Transition */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #68D391;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #68D391;
+        }
     </style>
 </head>
 <body class="text-gray-800">
@@ -175,10 +184,11 @@
 
         <!-- Tabs -->
         <div class="mb-6 border-b border-gray-200">
-            <nav class="flex -mb-px space-x-6" aria-label="Tabs">
-                <button id="tab-control" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600">제어</button>
-                <button id="tab-crops" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent">작물</button>
-                <button id="tab-stats" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent">통계</button>
+            <nav class="flex -mb-px space-x-6 overflow-x-auto no-scrollbar" aria-label="Tabs">
+                <button id="tab-control" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors">제어</button>
+                <button id="tab-crops" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">작물 관리</button>
+                <button id="tab-encyclopedia" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">식물 백과</button>
+                <button id="tab-stats" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">통계</button>
             </nav>
         </div>
 
@@ -196,11 +206,20 @@
                 </button>
             </div>
 
-            <!-- Profile Pump Status Summary -->
+            <!-- Profile Pump Status Summary with AI Diagnosis -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
-                <div class="flex items-center gap-3 mb-4">
-                    <h3 class="text-xl font-semibold text-gray-800">작물 펌프 상태</h3>
-                    <span id="active-pump-count" class="flex items-center justify-center w-7 h-7 text-sm font-bold text-white bg-gray-400 rounded-full transition-colors">0</span>
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <h3 class="text-xl font-semibold text-gray-800">작물 펌프 상태</h3>
+                        <span id="active-pump-count" class="flex items-center justify-center w-7 h-7 text-sm font-bold text-white bg-gray-400 rounded-full transition-colors">0</span>
+                    </div>
+                    <!-- AI Mode Toggle -->
+                    <div class="flex items-center gap-2">
+                         <span class="text-sm font-medium text-gray-600">AI 진단</span>
+                         <button id="ai-mode-toggle" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 bg-indigo-600" role="switch" aria-checked="true">
+                            <span aria-hidden="true" class="translate-x-5 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                        </button>
+                    </div>
                 </div>
                 <div id="profile-summary-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     <!-- JS will populate this -->
@@ -208,7 +227,7 @@
             </div>
         </div>
         
-        <!-- Crops Content (previously stats) -->
+        <!-- Crops Content -->
         <div id="content-crops" style="display: none;">
             <!-- Settings Profile Management -->
             <div class="mb-6 bg-white p-6 rounded-2xl shadow-md border border-gray-200">
@@ -266,7 +285,7 @@
                     <p class="mt-4 text-gray-500 text-sm">현재 실내 온도</p>
                 </div>
 
-                <!-- Humidity Card (with Controls) -->
+                <!-- Humidity Card -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
                     <div class="w-full flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-800">습도</h2>
@@ -354,8 +373,35 @@
                 </div>
              </div>
         </div>
+
+        <!-- NEW: Plant Encyclopedia Content -->
+        <div id="content-encyclopedia" style="display: none;">
+             <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-6">
+                <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
+                     <h3 class="text-xl font-bold text-gray-800">식물 백과사전</h3>
+                     <div class="flex w-full md:w-auto gap-2">
+                        <input type="text" id="plant-search-input" placeholder="식물 이름 검색..." class="flex-grow md:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="plant-search-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition font-medium">검색</button>
+                     </div>
+                </div>
+                <div class="flex gap-2 mt-4 overflow-x-auto no-scrollbar pb-2" id="category-filters">
+                    <button class="plant-category-btn active px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition" data-category="all">전체</button>
+                    <button class="plant-category-btn px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition" data-category="leaf">잎채소</button>
+                    <button class="plant-category-btn px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition" data-category="fruit">열매채소</button>
+                    <button class="plant-category-btn px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition" data-category="root">뿌리채소</button>
+                    <button class="plant-category-btn px-4 py-1.5 rounded-full bg-gray-100 text-gray-600 text-sm font-medium whitespace-nowrap hover:bg-gray-200 transition" data-category="herb">허브/기타</button>
+                </div>
+             </div>
+
+             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="plant-list">
+                <!-- JS will populate plant cards here -->
+            </div>
+            <div id="no-plant-results" class="text-center text-gray-500 mt-10 hidden">
+                <p class="text-lg">검색 결과가 없습니다. 🤔</p>
+            </div>
+        </div>
         
-        <!-- NEW Statistics/History Content -->
+        <!-- Statistics/History Content -->
         <div id="content-stats" style="display: none;">
             <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
@@ -421,6 +467,39 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // --- Expanded Plant Data ---
+        const plantData = [
+            { name: '상추', category: 'leaf', icon: '🥬', temp: '15~20°C', humidity: '50~70%', soil: '60~80%', light: '중간', desc: '서늘한 기후를 좋아하며, 물을 자주 주어야 연하고 맛이 좋습니다.' },
+            { name: '시금치', category: 'leaf', icon: '🥬', temp: '15~20°C', humidity: '60~70%', soil: '60~70%', light: '중간', desc: '철분이 풍부하며 서늘한 곳에서 잘 자랍니다. 산성 토양을 싫어합니다.' },
+            { name: '케일', category: 'leaf', icon: '🥬', temp: '15~20°C', humidity: '60~70%', soil: '60~70%', light: '높음', desc: '베타카로틴이 풍부하며 병충해에 강한 편입니다.' },
+            { name: '배추', category: 'leaf', icon: '🥬', temp: '18~22°C', humidity: '60~80%', soil: '60~70%', light: '높음', desc: '서늘한 기후를 좋아하고 물을 많이 필요로 합니다.' },
+            { name: '양배추', category: 'leaf', icon: '🥬', temp: '15~20°C', humidity: '60~70%', soil: '60~70%', light: '중간', desc: '비옥한 토양을 좋아하며 서늘한 곳에서 결구가 잘 됩니다.' },
+            { name: '토마토', category: 'fruit', icon: '🍅', temp: '20~25°C', humidity: '60~80%', soil: '60~70%', light: '높음', desc: '햇빛을 많이 필요로 하며, 배수가 잘 되는 토양을 좋아합니다.' },
+            { name: '방울토마토', category: 'fruit', icon: '🍅', temp: '20~25°C', humidity: '60~80%', soil: '60~70%', light: '높음', desc: '일반 토마토보다 키우기 쉽고 열매가 많이 달립니다.' },
+            { name: '딸기', category: 'fruit', icon: '🍓', temp: '17~23°C', humidity: '50~60%', soil: '50~70%', light: '높음', desc: '통풍이 잘 되고 햇빛이 잘 드는 곳에서 잘 자랍니다.' },
+            { name: '고추', category: 'fruit', icon: '🌶️', temp: '25~30°C', humidity: '60~70%', soil: '60~70%', light: '높음', desc: '고온성 작물로 따뜻한 환경을 좋아합니다.' },
+            { name: '가지', category: 'fruit', icon: '🍆', temp: '22~30°C', humidity: '60~80%', soil: '60~70%', light: '높음', desc: '물을 매우 좋아하며 고온 다습한 환경에서 잘 자랍니다.' },
+            { name: '오이', category: 'fruit', icon: '🥒', temp: '20~28°C', humidity: '70~90%', soil: '70~80%', light: '높음', desc: '뿌리가 얕아 건조에 약하므로 물을 자주 주어야 합니다.' },
+            { name: '호박', category: 'fruit', icon: '🎃', temp: '20~25°C', humidity: '60~70%', soil: '60~70%', light: '높음', desc: '덩굴성 식물로 넓은 공간이 필요합니다.' },
+            { name: '수박', category: 'fruit', icon: '🍉', temp: '25~30°C', humidity: '50~60%', soil: '50~60%', light: '매우 높음', desc: '고온 건조하고 햇빛이 강한 곳을 좋아합니다.' },
+            { name: '참외', category: 'fruit', icon: '🍈', temp: '25~30°C', humidity: '50~60%', soil: '50~60%', light: '높음', desc: '배수가 잘 되는 사양토에서 잘 자랍니다.' },
+            { name: '파프리카', category: 'fruit', icon: '🫑', temp: '20~25°C', humidity: '60~70%', soil: '60~70%', light: '높음', desc: '온도에 민감하므로 적정 온도를 유지하는 것이 중요합니다.' },
+            { name: '당근', category: 'root', icon: '🥕', temp: '15~21°C', humidity: '50~70%', soil: '50~60%', light: '중간', desc: '뿌리 채소로 깊고 부드러운 흙이 필요합니다.' },
+            { name: '무', category: 'root', icon: '🥬', temp: '15~20°C', humidity: '60~70%', soil: '60~70%', light: '중간', desc: '서늘한 기후에서 잘 자라며 흙이 부드러워야 합니다.' },
+            { name: '감자', category: 'root', icon: '🥔', temp: '15~20°C', humidity: '60~70%', soil: '50~60%', light: '높음', desc: '서늘한 기후를 좋아하며 배수가 잘 되어야 합니다.' },
+            { name: '고구마', category: 'root', icon: '🍠', temp: '20~30°C', humidity: '60~70%', soil: '50~60%', light: '높음', desc: '고온성 작물로 척박한 땅에서도 잘 자랍니다.' },
+            { name: '양파', category: 'root', icon: '🧅', temp: '15~20°C', humidity: '60~70%', soil: '50~60%', light: '높음', desc: '햇빛을 좋아하며 배수가 잘 되는 곳이 좋습니다.' },
+            { name: '마늘', category: 'root', icon: '🧄', temp: '15~20°C', humidity: '60~70%', soil: '50~60%', light: '높음', desc: '서늘한 기후에서 잘 자라며 월동이 가능합니다.' },
+            { name: '바질', category: 'herb', icon: '🌿', temp: '20~25°C', humidity: '40~60%', soil: '40~60%', light: '높음', desc: '따뜻하고 건조한 환경을 좋아하며 과습에 주의해야 합니다.' },
+            { name: '민트', category: 'herb', icon: '🌿', temp: '15~20°C', humidity: '50~70%', soil: '50~70%', light: '반음지', desc: '번식력이 매우 강하며 반그늘에서도 잘 자랍니다.' },
+            { name: '로즈마리', category: 'herb', icon: '🌿', temp: '15~25°C', humidity: '40~50%', soil: '30~50%', light: '높음', desc: '건조에 강하고 과습을 싫어하므로 물을 적게 줍니다.' },
+            { name: '라벤더', category: 'herb', icon: '🪻', temp: '15~25°C', humidity: '40~50%', soil: '30~50%', light: '높음', desc: '햇빛과 통풍이 중요하며 건조하게 키워야 합니다.' },
+            { name: '옥수수', category: 'herb', icon: '🌽', temp: '25~32°C', humidity: '50~70%', soil: '50~70%', light: '높음', desc: '비료를 많이 필요로 하며 햇빛이 강해야 합니다.' },
+            { name: '브로콜리', category: 'herb', icon: '🥦', temp: '16~20°C', humidity: '60~70%', soil: '60~80%', light: '중간', desc: '서늘한 기후를 좋아합니다.' },
+            { name: '콩', category: 'herb', icon: '🫘', temp: '20~25°C', humidity: '60~70%', soil: '60~70%', light: '높음', desc: '따뜻한 곳을 좋아하며 척박한 땅에서도 잘 자랍니다.' },
+             { name: '벼', category: 'herb', icon: '🌾', temp: '25~30°C', humidity: '70~90%', soil: '80~90%', light: '매우 높음', desc: '물과 햇빛을 매우 많이 필요로 합니다.' }
+        ];
+
         // --- DOM Elements ---
         const loginContainer = document.getElementById('login-container');
         const signupContainer = document.getElementById('signup-container');
@@ -464,9 +543,11 @@
         const editProfileBtn = document.getElementById('edit-profile-btn');
         const tabControl = document.getElementById('tab-control');
         const tabCrops = document.getElementById('tab-crops');
+        const tabEncyclopedia = document.getElementById('tab-encyclopedia');
         const tabStats = document.getElementById('tab-stats');
         const contentControl = document.getElementById('content-control');
         const contentCrops = document.getElementById('content-crops');
+        const contentEncyclopedia = document.getElementById('content-encyclopedia');
         const contentStats = document.getElementById('content-stats');
         const tempValueEl = document.getElementById('temp-value');
         const tempProgressEl = document.getElementById('temp-progress');
@@ -490,6 +571,12 @@
         const historyDatePicker = document.getElementById('history-date-picker');
         const historyChartContainer = document.getElementById('history-chart-container');
         const historyNoDataEl = document.getElementById('history-no-data');
+        const plantListContainer = document.getElementById('plant-list');
+        const plantSearchInput = document.getElementById('plant-search-input');
+        const plantSearchBtn = document.getElementById('plant-search-btn');
+        const noPlantResultsEl = document.getElementById('no-plant-results');
+        const categoryButtons = document.querySelectorAll('.plant-category-btn');
+        const aiModeToggle = document.getElementById('ai-mode-toggle');
 
         // --- State Variables ---
         let currentUserId = null;
@@ -501,6 +588,9 @@
         const circumference = 2 * Math.PI * 45;
         let currentTemp = 0.0, currentHumidity = 0, currentSoil = 0, currentLight = 0;
         let targetHumidity = 65, targetSoil = 70;
+        let currentPlantFilter = 'all';
+        let currentPlantSearch = '';
+        let isAIModeEnabled = true; // Default AI Mode enabled
 
         // --- Firebase Auth Logic ---
         onAuthStateChanged(auth, user => {
@@ -727,6 +817,17 @@
             updateProfileSummary(); addDataToCharts(temp, humidity, soil, light);
         }
 
+        function analyzePlantStatus(profile) {
+             const issues = [];
+             if (currentTemp < 10) issues.push("온도가 너무 낮습니다.");
+             if (currentTemp > 35) issues.push("온도가 너무 높습니다.");
+             if (currentSoil < profile.targetSoil - 20) issues.push("토양이 너무 건조합니다.");
+             if (currentSoil > profile.targetSoil + 20) issues.push("토양이 너무 습합니다.");
+
+             if (issues.length === 0) return { status: 'good', message: '최적 환경입니다.' };
+             return { status: 'warning', message: issues[0] }; 
+        }
+
         function updateProfileSummary() {
             if (!profileSummaryList) return; profileSummaryList.innerHTML = ''; let activePumps = 0;
             if (Object.keys(settingsProfiles).length === 0) { profileSummaryList.innerHTML = '<p class="text-gray-500 text-sm col-span-full text-center">프로필을 추가해주세요.</p>'; activePumpCountEl.textContent = '0'; return; }
@@ -736,6 +837,13 @@
                 summaryCard.className = isPumpActive ? 'bg-white rounded-xl p-4 flex flex-col items-center text-center transition-all shadow-md border-2 border-blue-500' : 'bg-white rounded-xl p-4 flex flex-col items-center text-center transition-all shadow-sm border border-gray-200 hover:shadow-md';
                 const pumpStatusHTML = isPumpActive ? `<div class="w-full mt-3 px-4 py-2 rounded-lg font-semibold text-sm bg-blue-100 text-blue-800 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="animate-pulse"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg><span>작동중</span></div>` : `<div class="w-full mt-3 px-4 py-2 rounded-lg font-semibold text-sm bg-gray-100 text-gray-600 flex items-center justify-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span>대기중</span></div>`;
                 
+                let aiBadge = '';
+                if (isAIModeEnabled) {
+                     const aiDiagnosis = analyzePlantStatus(profile);
+                     let aiBadgeClass = aiDiagnosis.status === 'good' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700';
+                     aiBadge = `<div class="${aiBadgeClass} text-xs px-2 py-1 rounded mt-1 w-full font-semibold">${aiDiagnosis.message}</div>`;
+                }
+
                 const cardTitle = document.createElement('h4');
                 cardTitle.className = 'font-bold text-gray-800';
                 cardTitle.textContent = profileName;
@@ -746,12 +854,31 @@
 
                 summaryCard.appendChild(cardIcon);
                 summaryCard.appendChild(cardTitle);
-                summaryCard.innerHTML += `<p class="text-xs text-gray-500">현재: ${currentSoil}% / 기준: ${profile.targetSoil}%</p>` + pumpStatusHTML;
+                summaryCard.innerHTML += aiBadge;
+                summaryCard.innerHTML += `<p class="text-xs text-gray-500 mt-2">현재: ${currentSoil}% / 기준: ${profile.targetSoil}%</p>` + pumpStatusHTML;
 
                 profileSummaryList.appendChild(summaryCard);
             }
             activePumpCountEl.textContent = activePumps; activePumpCountEl.classList.toggle('bg-blue-500', activePumps > 0); activePumpCountEl.classList.toggle('bg-gray-400', activePumps === 0);
         }
+
+        aiModeToggle.addEventListener('click', () => {
+            isAIModeEnabled = !isAIModeEnabled;
+            
+            const toggleKnob = aiModeToggle.querySelector('span');
+            if (isAIModeEnabled) {
+                aiModeToggle.classList.remove('bg-gray-200');
+                aiModeToggle.classList.add('bg-indigo-600');
+                toggleKnob.classList.remove('translate-x-0');
+                toggleKnob.classList.add('translate-x-5');
+            } else {
+                aiModeToggle.classList.remove('bg-indigo-600');
+                aiModeToggle.classList.add('bg-gray-200');
+                toggleKnob.classList.remove('translate-x-5');
+                toggleKnob.classList.add('translate-x-0');
+            }
+            updateProfileSummary();
+        });
 
         function startSimulation() {
              if (simulationInterval) return; setConnected(true, 'simulation');
@@ -810,10 +937,85 @@
             } catch (error) { console.error("Error parsing data:", error, "Received:", dataString); }
         }
 
-        tabControl.addEventListener('click', () => { contentControl.style.display = 'block'; contentCrops.style.display = 'none'; contentStats.style.display = 'none'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabCrops.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
-        tabCrops.addEventListener('click', () => { contentControl.style.display = 'none'; contentCrops.style.display = 'block'; contentStats.style.display = 'none'; tabCrops.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
-        tabStats.addEventListener('click', () => { contentControl.style.display = 'none'; contentCrops.style.display = 'none'; contentStats.style.display = 'block'; tabStats.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-blue-600 border-blue-600'; tabControl.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; tabCrops.className = 'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent'; });
+        // Tab navigation logic
+        function switchTab(tabId) {
+            const contents = [contentControl, contentCrops, contentEncyclopedia, contentStats];
+            const tabs = [tabControl, tabCrops, tabEncyclopedia, tabStats];
+            
+            contents.forEach(content => content.style.display = 'none');
+            tabs.forEach(tab => {
+                tab.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors';
+            });
+
+            if (tabId === 'control') { contentControl.style.display = 'block'; tabControl.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; }
+            else if (tabId === 'crops') { contentCrops.style.display = 'block'; tabCrops.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; }
+            else if (tabId === 'encyclopedia') { contentEncyclopedia.style.display = 'block'; tabEncyclopedia.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; renderPlantEncyclopedia(); }
+            else if (tabId === 'stats') { contentStats.style.display = 'block'; tabStats.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; }
+        }
+
+        tabControl.addEventListener('click', () => switchTab('control'));
+        tabCrops.addEventListener('click', () => switchTab('crops'));
+        tabEncyclopedia.addEventListener('click', () => switchTab('encyclopedia'));
+        tabStats.addEventListener('click', () => switchTab('stats'));
         
+        function renderPlantEncyclopedia() {
+            plantListContainer.innerHTML = '';
+            const filteredData = plantData.filter(plant => {
+                const matchesCategory = currentPlantFilter === 'all' || plant.category === currentPlantFilter;
+                const matchesSearch = plant.name.includes(currentPlantSearch);
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filteredData.length === 0) {
+                noPlantResultsEl.style.display = 'block';
+            } else {
+                noPlantResultsEl.style.display = 'none';
+                filteredData.forEach(plant => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow';
+                    card.innerHTML = `
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="text-4xl">${plant.icon}</div>
+                            <h3 class="text-lg font-bold text-gray-800">${plant.name}</h3>
+                        </div>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <p><span class="font-semibold">🌡️ 온도:</span> ${plant.temp}</p>
+                            <p><span class="font-semibold">💧 습도:</span> ${plant.humidity}</p>
+                            <p><span class="font-semibold">🌱 토양:</span> ${plant.soil}</p>
+                            <p><span class="font-semibold">☀️ 광량:</span> ${plant.light}</p>
+                        </div>
+                        <p class="mt-4 text-xs text-gray-500 bg-gray-50 p-2 rounded">${plant.desc}</p>
+                    `;
+                    plantListContainer.appendChild(card);
+                });
+            }
+        }
+
+        categoryButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                categoryButtons.forEach(b => b.classList.remove('active', 'bg-blue-500', 'text-white', 'border-blue-500'));
+                categoryButtons.forEach(b => b.classList.add('bg-gray-100', 'text-gray-600'));
+                
+                btn.classList.remove('bg-gray-100', 'text-gray-600');
+                btn.classList.add('active', 'bg-blue-500', 'text-white', 'border-blue-500');
+                
+                currentPlantFilter = btn.dataset.category;
+                renderPlantEncyclopedia();
+            });
+        });
+
+        plantSearchBtn.addEventListener('click', () => {
+            currentPlantSearch = plantSearchInput.value.trim();
+            renderPlantEncyclopedia();
+        });
+        
+        plantSearchInput.addEventListener('keyup', (e) => {
+             if (e.key === 'Enter') {
+                currentPlantSearch = plantSearchInput.value.trim();
+                renderPlantEncyclopedia();
+            }
+        });
+
         function updateProfileSelect() {
             const currentSelection = profileSelect.value; profileSelect.innerHTML = '';
             for (const profileName in settingsProfiles) { const option = document.createElement('option'); option.value = profileName; option.textContent = profileName; profileSelect.appendChild(option); }
@@ -908,4 +1110,3 @@
     </script>
 </body>
 </html>
-
