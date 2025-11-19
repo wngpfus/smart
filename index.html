@@ -7,6 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <!-- Markdown Parser for AI Responses -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -20,14 +22,60 @@
         input[type=number] { -moz-appearance: textfield; }
         .icon-picker-item.selected { border-color: #3b82f6; transform: scale(1.1); background-color: #eff6ff; }
         .plant-category-btn.active { background-color: #3b82f6; color: white; border-color: #3b82f6; }
-        /* Toggle Switch Transition */
-        .toggle-checkbox:checked {
-            right: 0;
-            border-color: #68D391;
+        /* Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #68D391; }
+        
+        /* Scrollbar Hide */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Chat UI Improvements */
+        .chat-container { display: flex; flex-direction: column; gap: 1rem; }
+        
+        .chat-message { display: flex; align-items: flex-start; max-width: 80%; margin-bottom: 12px; }
+        .chat-message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .chat-message.ai { align-self: flex-start; }
+
+        .chat-avatar { 
+            width: 36px; height: 36px; 
+            border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
-        .toggle-checkbox:checked + .toggle-label {
-            background-color: #68D391;
+        .chat-message.user .chat-avatar { margin-left: 8px; background-color: #dbeafe; } /* Light blue for user */
+        .chat-message.ai .chat-avatar { margin-right: 8px; background-color: #ffffff; border: 1px solid #e5e7eb; } /* White for AI */
+
+        .chat-bubble { 
+            padding: 10px 14px; 
+            border-radius: 18px; 
+            line-height: 1.5; 
+            font-size: 0.95rem; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            position: relative;
+            word-break: break-word;
         }
+        
+        .chat-message.user .chat-bubble { 
+            background-color: #3b82f6; 
+            color: white; 
+            border-top-right-radius: 4px; 
+        }
+        
+        .chat-message.ai .chat-bubble { 
+            background-color: #ffffff; 
+            color: #1f2937; 
+            border: 1px solid #e5e7eb; 
+            border-top-left-radius: 4px; 
+        }
+
+        .chat-ai p { margin-bottom: 0.5em; }
+        .chat-ai p:last-child { margin-bottom: 0; }
+        .chat-ai ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 0.5em; }
+        .chat-ai ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 0.5em; }
+        .chat-ai strong { font-weight: 600; color: #111827; }
     </style>
 </head>
 <body class="text-gray-800">
@@ -188,6 +236,7 @@
                 <button id="tab-control" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors">제어</button>
                 <button id="tab-crops" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">작물 관리</button>
                 <button id="tab-encyclopedia" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">식물 백과</button>
+                <button id="tab-ai" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">AI 농부</button>
                 <button id="tab-stats" class="whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors">통계</button>
             </nav>
         </div>
@@ -259,11 +308,11 @@
                     </div>
                 </div>
                 <div class="mt-4 border-t pt-4">
-                     <label for="profile-name-input" class="block text-sm font-medium text-gray-700">프로필 이름</label>
-                     <div class="mt-1 flex gap-2">
+                      <label for="profile-name-input" class="block text-sm font-medium text-gray-700">프로필 이름</label>
+                      <div class="mt-1 flex gap-2">
                         <input type="text" id="profile-name-input" placeholder="새 이름 입력 또는 기존 이름 선택" class="flex-grow block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
                         <button id="save-profile-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-md transition">저장 / 업데이트</button>
-                     </div>
+                      </div>
                 </div>
             </div>
 
@@ -273,7 +322,7 @@
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
                     <div class="w-full flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-800">온도</h2>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2> 0 0 1 4 0Z"/></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
                     </div>
                     <div class="relative w-40 h-40">
                         <svg class="w-full h-full" viewBox="0 0 100 100">
@@ -285,7 +334,7 @@
                     <p class="mt-4 text-gray-500 text-sm">현재 실내 온도</p>
                 </div>
 
-                <!-- Humidity Card -->
+                <!-- Humidity Card (with Controls) -->
                 <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
                     <div class="w-full flex items-center justify-between mb-4">
                         <h2 class="text-xl font-semibold text-gray-800">습도</h2>
@@ -298,7 +347,7 @@
                         </svg>
                         <div id="humidity-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                     </div>
-                     <div class="w-full mt-4">
+                      <div class="w-full mt-4">
                         <div class="flex items-center justify-between text-sm py-2">
                             <label for="humidity-input" class="text-gray-600">목표 습도</label>
                             <div class="flex items-center gap-1">
@@ -322,7 +371,7 @@
                         </svg>
                         <div id="soil-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                     </div>
-                     <div class="w-full mt-4">
+                      <div class="w-full mt-4">
                         <div class="flex items-center justify-between text-sm py-2">
                             <label for="soil-input" class="text-gray-600">급수 기준</label>
                             <div class="flex items-center gap-1">
@@ -400,6 +449,42 @@
                 <p class="text-lg">검색 결과가 없습니다. 🤔</p>
             </div>
         </div>
+
+        <!-- AI Farmer Content -->
+        <div id="content-ai" style="display: none;">
+            <div class="bg-white rounded-2xl shadow-md border border-gray-200 p-6 h-[600px] flex flex-col">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <span>🤖</span> AI 농부 상담소
+                    </h3>
+                </div>
+                
+                <div id="chat-history" class="flex-1 overflow-y-auto mb-4 space-y-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                    <div class="chat-message ai">
+                        <div class="chat-avatar">🤖</div>
+                        <div class="chat-bubble">
+                            <p>안녕하세요! 저는 당신의 스마트팜 AI 비서입니다. 🌱</p>
+                            <p>현재 센서 데이터를 분석하거나, 식물 키우는 팁을 알려드릴 수 있어요. 무엇을 도와드릴까요?</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- NEW: Suggestion Chips -->
+                <div class="flex gap-2 mb-3 overflow-x-auto no-scrollbar" id="chat-suggestions">
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">지금 내 작물 상태 어때? 🌱</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">물은 얼마나 자주 줘야 해? 💧</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">상추 잘 키우는 꿀팁 알려줘 🥬</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">습도가 적당한가요? 🌡️</button>
+                </div>
+
+                <div class="flex gap-2">
+                    <textarea id="chat-input" rows="1" placeholder="질문을 입력하세요... (예: 지금 내 작물 상태 어때?)" class="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    <button id="send-chat-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-6 rounded-xl transition flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
         
         <!-- Statistics/History Content -->
         <div id="content-stats" style="display: none;">
@@ -435,19 +520,19 @@
             updatePassword
         } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
         import { 
-            getFirestore,
-            collection,
-            doc,
-            setDoc,
-            getDoc,
-            deleteDoc,
-            onSnapshot,
-            addDoc,
-            serverTimestamp,
-            query,
-            where,
-            orderBy,
-            getDocs,
+            getFirestore, 
+            collection, 
+            doc, 
+            setDoc, 
+            getDoc, 
+            deleteDoc, 
+            onSnapshot, 
+            addDoc, 
+            serverTimestamp, 
+            query, 
+            where, 
+            orderBy, 
+            getDocs, 
             Timestamp
         } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
 
@@ -544,11 +629,15 @@
         const tabControl = document.getElementById('tab-control');
         const tabCrops = document.getElementById('tab-crops');
         const tabEncyclopedia = document.getElementById('tab-encyclopedia');
+        const tabAi = document.getElementById('tab-ai');
         const tabStats = document.getElementById('tab-stats');
+        
         const contentControl = document.getElementById('content-control');
         const contentCrops = document.getElementById('content-crops');
         const contentEncyclopedia = document.getElementById('content-encyclopedia');
+        const contentAi = document.getElementById('content-ai');
         const contentStats = document.getElementById('content-stats');
+
         const tempValueEl = document.getElementById('temp-value');
         const tempProgressEl = document.getElementById('temp-progress');
         const humidityValueEl = document.getElementById('humidity-value');
@@ -578,6 +667,11 @@
         const categoryButtons = document.querySelectorAll('.plant-category-btn');
         const aiModeToggle = document.getElementById('ai-mode-toggle');
 
+        // AI Chat Elements
+        const chatHistory = document.getElementById('chat-history');
+        const chatInput = document.getElementById('chat-input');
+        const sendChatBtn = document.getElementById('send-chat-btn');
+        
         // --- State Variables ---
         let currentUserId = null;
         let unsubscribeProfiles = null; 
@@ -590,7 +684,10 @@
         let targetHumidity = 65, targetSoil = 70;
         let currentPlantFilter = 'all';
         let currentPlantSearch = '';
-        let isAIModeEnabled = true; // Default AI Mode enabled
+        let isAIModeEnabled = true;
+        
+        // Hardcoded Gemini API Key
+        const geminiApiKey = "AIzaSyBgD92z-7ekoc5Mc4FTzGAkC7B-c7DAiXQ";
 
         // --- Firebase Auth Logic ---
         onAuthStateChanged(auth, user => {
@@ -604,6 +701,10 @@
                 userEmailEl.textContent = user.email;
                 dashboardTitleEl.textContent = `🌿 ${(user.displayName || '나')}의 스마트팜`;
                 listenToProfiles(currentUserId);
+                // Auto-fetch today's data on login
+                if (historyDatePicker.value) {
+                    fetchHistoryData(historyDatePicker.value);
+                }
             } else {
                 currentUserId = null;
                 loginContainer.style.display = 'flex';
@@ -738,6 +839,122 @@
             editProfileContainer.style.display = 'none';
             appContainer.style.display = 'block';
         });
+
+        // --- Tab Logic (NEW) ---
+        function setupTabs() {
+            const tabs = [
+                { button: tabControl, content: contentControl },
+                { button: tabCrops, content: contentCrops },
+                { button: tabEncyclopedia, content: contentEncyclopedia },
+                { button: tabAi, content: contentAi },
+                { button: tabStats, content: contentStats },
+            ];
+
+            tabs.forEach(tab => {
+                tab.button.addEventListener('click', () => {
+                    // Hide all contents
+                    tabs.forEach(t => {
+                        t.content.style.display = 'none';
+                        t.button.classList.remove('text-blue-600', 'border-blue-600');
+                        t.button.classList.add('text-gray-500', 'border-transparent', 'hover:text-gray-700', 'hover:border-gray-300');
+                    });
+
+                    // Show selected content
+                    tab.content.style.display = 'block';
+                    tab.button.classList.remove('text-gray-500', 'border-transparent', 'hover:text-gray-700', 'hover:border-gray-300');
+                    tab.button.classList.add('text-blue-600', 'border-blue-600');
+                    
+                    // Resize charts if switching to stats or crops
+                    if (tab.button === tabStats || tab.button === tabControl) {
+                         window.dispatchEvent(new Event('resize'));
+                    }
+                });
+            });
+        }
+
+        // --- Plant Encyclopedia Logic (NEW) ---
+        function renderPlants(category = 'all', searchTerm = '') {
+            plantListContainer.innerHTML = '';
+            
+            const filteredPlants = plantData.filter(plant => {
+                const matchesCategory = category === 'all' || plant.category === category;
+                const matchesSearch = plant.name.includes(searchTerm) || plant.desc.includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            });
+
+            if (filteredPlants.length === 0) {
+                noPlantResultsEl.classList.remove('hidden');
+            } else {
+                noPlantResultsEl.classList.add('hidden');
+                filteredPlants.forEach(plant => {
+                    const plantCard = document.createElement('div');
+                    plantCard.className = 'bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition';
+                    plantCard.innerHTML = `
+                        <div class="p-5">
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                    <span class="text-3xl">${plant.icon}</span>
+                                    <h4 class="text-lg font-bold text-gray-800">${plant.name}</h4>
+                                </div>
+                                <span class="text-xs font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-600">
+                                    ${getCategoryName(plant.category)}
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-500 mb-4 h-10 overflow-hidden">${plant.desc}</p>
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div class="bg-red-50 p-2 rounded text-red-700 font-medium">
+                                    🌡️ ${plant.temp}
+                                </div>
+                                <div class="bg-blue-50 p-2 rounded text-blue-700 font-medium">
+                                    💧 ${plant.humidity}
+                                </div>
+                                <div class="bg-green-50 p-2 rounded text-green-700 font-medium">
+                                    🌱 ${plant.soil}
+                                </div>
+                                <div class="bg-yellow-50 p-2 rounded text-yellow-700 font-medium">
+                                    ☀️ ${plant.light}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    plantListContainer.appendChild(plantCard);
+                });
+            }
+        }
+
+        function getCategoryName(cat) {
+            switch(cat) {
+                case 'leaf': return '잎채소';
+                case 'fruit': return '열매채소';
+                case 'root': return '뿌리채소';
+                case 'herb': return '허브/기타';
+                default: return '기타';
+            }
+        }
+
+        // Category Filters
+        categoryButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                categoryButtons.forEach(b => b.classList.remove('active', 'bg-blue-600', 'text-white'));
+                btn.classList.add('active');
+                currentPlantFilter = btn.dataset.category;
+                renderPlants(currentPlantFilter, currentPlantSearch);
+            });
+        });
+
+        // Search Logic
+        plantSearchBtn.addEventListener('click', () => {
+            currentPlantSearch = plantSearchInput.value.trim();
+            renderPlants(currentPlantFilter, currentPlantSearch);
+        });
+        plantSearchInput.addEventListener('keyup', (e) => {
+             if (e.key === 'Enter') {
+                currentPlantSearch = plantSearchInput.value.trim();
+                renderPlants(currentPlantFilter, currentPlantSearch);
+             }
+        });
+
+
         
         // --- Firestore Logic ---
         async function saveProfileToFirestore(profileName, profileData) {
@@ -762,6 +979,10 @@
                 };
                 await addDoc(collection(db, 'users', currentUserId, 'historicalData'), dataLog);
                 console.log("Logged data to Firestore:", dataLog);
+                // If currently viewing today's data, refresh the chart
+                if (historyDatePicker.value === new Date().toISOString().split('T')[0]) {
+                    fetchHistoryData(historyDatePicker.value);
+                }
             } catch (error) {
                 console.error("Error logging data:", error);
             }
@@ -855,7 +1076,9 @@
                 summaryCard.appendChild(cardIcon);
                 summaryCard.appendChild(cardTitle);
                 summaryCard.innerHTML += aiBadge;
-                summaryCard.innerHTML += `<p class="text-xs text-gray-500 mt-2">현재: ${currentSoil}% / 기준: ${profile.targetSoil}%</p>` + pumpStatusHTML;
+                
+                // FIXED: Use .toFixed(1) to limit decimal places to 1
+                summaryCard.innerHTML += `<p class="text-xs text-gray-500 mt-2">현재: ${Number(currentSoil).toFixed(1)}% / 기준: ${profile.targetSoil}%</p>` + pumpStatusHTML;
 
                 profileSummaryList.appendChild(summaryCard);
             }
@@ -864,18 +1087,13 @@
 
         aiModeToggle.addEventListener('click', () => {
             isAIModeEnabled = !isAIModeEnabled;
-            
             const toggleKnob = aiModeToggle.querySelector('span');
             if (isAIModeEnabled) {
-                aiModeToggle.classList.remove('bg-gray-200');
-                aiModeToggle.classList.add('bg-indigo-600');
-                toggleKnob.classList.remove('translate-x-0');
-                toggleKnob.classList.add('translate-x-5');
+                aiModeToggle.classList.remove('bg-gray-200'); aiModeToggle.classList.add('bg-indigo-600');
+                toggleKnob.classList.remove('translate-x-0'); toggleKnob.classList.add('translate-x-5');
             } else {
-                aiModeToggle.classList.remove('bg-indigo-600');
-                aiModeToggle.classList.add('bg-gray-200');
-                toggleKnob.classList.remove('translate-x-5');
-                toggleKnob.classList.add('translate-x-0');
+                aiModeToggle.classList.remove('bg-indigo-600'); aiModeToggle.classList.add('bg-gray-200');
+                toggleKnob.classList.remove('translate-x-5'); toggleKnob.classList.add('translate-x-0');
             }
             updateProfileSummary();
         });
@@ -900,7 +1118,8 @@
             const baseSimulateHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg><span>시뮬레이션 시작</span>`;
             
             if (state) {
-                dataLogInterval = setInterval(logDataToFirestore, 10 * 60 * 1000); // Log data every 10 minutes
+                logDataToFirestore(); // Log immediately on connection start
+                dataLogInterval = setInterval(logDataToFirestore, 10 * 60 * 1000); // Then every 10 minutes
                 const btn = type === 'bluetooth' ? connectBtn : simulateBtn;
                 const stopFn = type === 'bluetooth' ? disconnect : stopSimulation;
                 btn.innerHTML = type === 'bluetooth' ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8.7 15 12l3 3.3"/><path d="m6 17.3-3-3.3 3-3.3"/><path d="M18 15.3 15 12l3-3.3"/><path d="m6 8.7 3 3.3-3 3.3"/><path d="M9 12h6"/></svg><span>연결 해제</span>` : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg><span>시뮬레이션 중지</span>`;
@@ -937,84 +1156,132 @@
             } catch (error) { console.error("Error parsing data:", error, "Received:", dataString); }
         }
 
-        // Tab navigation logic
-        function switchTab(tabId) {
-            const contents = [contentControl, contentCrops, contentEncyclopedia, contentStats];
-            const tabs = [tabControl, tabCrops, tabEncyclopedia, tabStats];
+        // AI Chat Logic (Robust with Retries)
+        async function callGeminiAPI(message) {
+            if (!geminiApiKey) {
+                addChatMessage("AI", "API Key를 먼저 설정해주세요.");
+                return;
+            }
             
-            contents.forEach(content => content.style.display = 'none');
-            tabs.forEach(tab => {
-                tab.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300 border-transparent transition-colors';
-            });
+            const prompt = `
+                당신은 스마트팜 전문가 AI입니다. 사용자의 질문에 친절하게 답변해주세요.
+                답변은 핵심만 요약해서 짧고 간결하게 해주세요.
+                
+                **중요: 이미 대화 중이므로 "안녕하세요" 같은 인사말이나 "저는 스마트팜 전문가 AI입니다" 같은 자기소개는 절대 하지 마세요. 바로 본론으로 들어가서 답변만 하세요.**
+                
+                [현재 센서 데이터]
+                온도: ${currentTemp}°C
+                습도: ${currentHumidity}%
+                토양 수분: ${currentSoil}%
+                조도: ${currentLight}lx
+                
+                [사용자 질문]
+                ${message}
+            `;
 
-            if (tabId === 'control') { contentControl.style.display = 'block'; tabControl.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; }
-            else if (tabId === 'crops') { contentCrops.style.display = 'block'; tabCrops.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; }
-            else if (tabId === 'encyclopedia') { contentEncyclopedia.style.display = 'block'; tabEncyclopedia.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; renderPlantEncyclopedia(); }
-            else if (tabId === 'stats') { contentStats.style.display = 'block'; tabStats.className = 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-lg text-blue-600 border-blue-600 transition-colors'; }
+            // Retry logic variables
+            const maxRetries = 5;
+            let retryCount = 0;
+            let delay = 1000; // Start with 1 second
+
+            // Helper function for delay
+            const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            while (retryCount <= maxRetries) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+
+                    const data = await response.json();
+                    
+                    // Check for API errors inside the 200 OK response or non-200 status
+                    if (!response.ok || data.error) {
+                        const errorMessage = data.error ? data.error.message : response.statusText;
+                        // If overloaded (503 or specific error message), throw to trigger retry
+                        if (response.status === 503 || errorMessage.includes('overloaded')) {
+                            throw new Error(errorMessage); // Throw to catch block for retry
+                        }
+                         // For other errors, throw to exit loop
+                         throw new Error(errorMessage);
+                    }
+
+                    const aiResponse = data.candidates[0].content.parts[0].text;
+                    addChatMessage("AI", aiResponse);
+                    return; // Success, exit function
+
+                } catch (error) {
+                    // We don't log to console as per instructions
+                    
+                    if (retryCount === maxRetries) {
+                        // Final failure
+                        addChatMessage("AI", `죄송합니다. 현재 AI 서버가 혼잡하여 응답할 수 없습니다. 잠시 후 다시 시도해주세요. (오류: ${error.message})`);
+                        return;
+                    }
+
+                    // Wait before next retry
+                    await wait(delay);
+                    delay *= 2; // Exponential backoff
+                    retryCount++;
+                }
+            }
         }
 
-        tabControl.addEventListener('click', () => switchTab('control'));
-        tabCrops.addEventListener('click', () => switchTab('crops'));
-        tabEncyclopedia.addEventListener('click', () => switchTab('encyclopedia'));
-        tabStats.addEventListener('click', () => switchTab('stats'));
-        
-        function renderPlantEncyclopedia() {
-            plantListContainer.innerHTML = '';
-            const filteredData = plantData.filter(plant => {
-                const matchesCategory = currentPlantFilter === 'all' || plant.category === currentPlantFilter;
-                const matchesSearch = plant.name.includes(currentPlantSearch);
-                return matchesCategory && matchesSearch;
-            });
+        function addChatMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender.toLowerCase()}`;
+            
+            let avatar = '🤖';
+            if (sender === 'User') avatar = '👤';
 
-            if (filteredData.length === 0) {
-                noPlantResultsEl.style.display = 'block';
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'chat-avatar';
+            avatarDiv.textContent = avatar;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'chat-bubble';
+            
+            if (sender === 'AI') {
+                // Parse Markdown using marked.js
+                bubbleDiv.innerHTML = marked.parse(text);
             } else {
-                noPlantResultsEl.style.display = 'none';
-                filteredData.forEach(plant => {
-                    const card = document.createElement('div');
-                    card.className = 'bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow';
-                    card.innerHTML = `
-                        <div class="flex items-center gap-4 mb-4">
-                            <div class="text-4xl">${plant.icon}</div>
-                            <h3 class="text-lg font-bold text-gray-800">${plant.name}</h3>
-                        </div>
-                        <div class="space-y-2 text-sm text-gray-600">
-                            <p><span class="font-semibold">🌡️ 온도:</span> ${plant.temp}</p>
-                            <p><span class="font-semibold">💧 습도:</span> ${plant.humidity}</p>
-                            <p><span class="font-semibold">🌱 토양:</span> ${plant.soil}</p>
-                            <p><span class="font-semibold">☀️ 광량:</span> ${plant.light}</p>
-                        </div>
-                        <p class="mt-4 text-xs text-gray-500 bg-gray-50 p-2 rounded">${plant.desc}</p>
-                    `;
-                    plantListContainer.appendChild(card);
-                });
+                bubbleDiv.textContent = text;
             }
+            
+            messageDiv.appendChild(avatarDiv);
+            messageDiv.appendChild(bubbleDiv);
+
+            chatHistory.appendChild(messageDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
         }
 
-        categoryButtons.forEach(btn => {
+        sendChatBtn.addEventListener('click', () => {
+            const message = chatInput.value.trim();
+            if (message) {
+                addChatMessage("User", message);
+                callGeminiAPI(message);
+                chatInput.value = '';
+            }
+        });
+
+        chatInput.addEventListener('keyup', (e) => {
+             if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatBtn.click();
+            }
+        });
+
+        // --- Chat Suggestion Logic (NEW) ---
+        document.querySelectorAll('#chat-suggestions button').forEach(btn => {
             btn.addEventListener('click', () => {
-                categoryButtons.forEach(b => b.classList.remove('active', 'bg-blue-500', 'text-white', 'border-blue-500'));
-                categoryButtons.forEach(b => b.classList.add('bg-gray-100', 'text-gray-600'));
-                
-                btn.classList.remove('bg-gray-100', 'text-gray-600');
-                btn.classList.add('active', 'bg-blue-500', 'text-white', 'border-blue-500');
-                
-                currentPlantFilter = btn.dataset.category;
-                renderPlantEncyclopedia();
+                const message = btn.textContent.replace(/ [🌱💧🥬🌡️]$/, ''); // Remove emoji for clean query if needed, though Gemini handles it.
+                addChatMessage("User", btn.textContent); // Show full text with emoji
+                callGeminiAPI(message); // Send clean or full text
             });
         });
 
-        plantSearchBtn.addEventListener('click', () => {
-            currentPlantSearch = plantSearchInput.value.trim();
-            renderPlantEncyclopedia();
-        });
-        
-        plantSearchInput.addEventListener('keyup', (e) => {
-             if (e.key === 'Enter') {
-                currentPlantSearch = plantSearchInput.value.trim();
-                renderPlantEncyclopedia();
-            }
-        });
 
         function updateProfileSelect() {
             const currentSelection = profileSelect.value; profileSelect.innerHTML = '';
@@ -1103,7 +1370,10 @@
 
         historyDatePicker.addEventListener('change', (e) => fetchHistoryData(e.target.value));
 
+        // --- Initialize Everything ---
         initCharts();
+        setupTabs(); // Start tab listeners
+        renderPlants(); // Render initial plant list
         historyDatePicker.valueAsDate = new Date();
         fetchHistoryData(historyDatePicker.value);
         setConnected(false);
