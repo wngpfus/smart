@@ -76,9 +76,156 @@
         .chat-ai ul { list-style-type: disc; margin-left: 1.5em; margin-bottom: 0.5em; }
         .chat-ai ol { list-style-type: decimal; margin-left: 1.5em; margin-bottom: 0.5em; }
         .chat-ai strong { font-weight: 600; color: #111827; }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+            width: 90%;
+            max-width: 400px;
+        }
+        .toast-message {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease-out;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+        }
+        .toast-message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Alert Switch */
+        .alert-switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .alert-switch input { opacity: 0; width: 0; height: 0; }
+        .alert-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .alert-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .alert-slider { background-color: #3b82f6; }
+        input:checked + .alert-slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body class="text-gray-800">
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Alert Settings Modal -->
+    <div id="alert-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 transition-all" style="min-height: 300px;">
+            
+            <!-- View 1: Alert List -->
+            <div id="alert-list-view">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        🔔 알림 모아보기
+                    </h3>
+                    <button class="close-modal-btn text-gray-400 hover:text-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                
+                <div id="alert-list-container" class="space-y-3 mb-6 max-h-96 overflow-y-auto no-scrollbar">
+                    <!-- Alert items will be injected here -->
+                    <p class="text-center text-gray-500 py-4">등록된 알림이 없습니다.</p>
+                </div>
+
+                <button id="btn-show-add-alert" class="w-full py-3 border-2 border-dashed border-blue-300 text-blue-500 rounded-xl font-semibold hover:bg-blue-50 transition flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    새 알림 추가하기
+                </button>
+            </div>
+
+            <!-- View 2: Add/Edit Form -->
+            <div id="alert-form-view" class="hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold text-gray-800 flex items-center gap-2" id="alert-form-title">
+                        📝 알림 설정 추가
+                    </h3>
+                    <button id="btn-cancel-alert" class="text-gray-400 hover:text-gray-600 text-sm">
+                        취소
+                    </button>
+                </div>
+
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">알림 이름 (작물명)</label>
+                        <input type="text" id="alert-name" class="w-full border border-gray-300 rounded-lg p-2 focus:ring-blue-500 focus:border-blue-500" placeholder="예: 상추, 토마토">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">🌡️ 온도 경고</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="alert-temp-min" class="w-20 border border-gray-300 rounded-lg p-2 text-center focus:ring-blue-500 focus:border-blue-500" placeholder="최저">
+                            <span class="text-gray-500 text-sm">°C 미만 ~</span>
+                            <input type="number" id="alert-temp-max" class="w-20 border border-gray-300 rounded-lg p-2 text-center focus:ring-blue-500 focus:border-blue-500" placeholder="최고">
+                            <span class="text-gray-500 text-sm">°C 초과</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">💧 습도 경고</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="alert-humid-min" class="w-20 border border-gray-300 rounded-lg p-2 text-center focus:ring-blue-500 focus:border-blue-500" placeholder="최저">
+                            <span class="text-gray-500 text-sm">% 미만일 때</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">🌱 토양 수분 경고</label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" id="alert-soil-min" class="w-20 border border-gray-300 rounded-lg p-2 text-center focus:ring-blue-500 focus:border-blue-500" placeholder="최저">
+                            <span class="text-gray-500 text-sm">% 미만일 때</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-8">
+                    <button id="save-alert-rule" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition">
+                        저장하기
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 
     <!-- Login Screen -->
     <div id="login-container" class="min-h-screen flex items-center justify-center p-4">
@@ -232,10 +379,16 @@
 
                 <h1 id="dashboard-title" class="text-3xl sm:text-4xl font-bold text-center text-gray-800">🌿 Smart Farm Dashboard</h1>
                 
-                <div class="text-right w-full md:w-auto text-center md:text-right">
-                    <p id="user-email" class="text-sm text-gray-600 font-medium"></p>
-                    <button id="edit-profile-btn" class="text-sm text-blue-600 hover:underline">내 정보 수정</button>
+                <div class="text-right w-full md:w-auto text-center md:text-right flex items-center justify-center md:justify-end gap-3">
+                    <p id="user-email" class="text-sm text-gray-600 font-medium hidden sm:block"></p>
+                    <button id="edit-profile-btn" class="text-sm text-blue-600 hover:underline">내 정보</button>
                     <span class="text-sm text-gray-400">|</span>
+                    
+                    <!-- Alert Settings Button -->
+                    <button id="alert-settings-btn" class="text-gray-500 hover:text-yellow-500 transition" title="위험 알림 설정">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                    </button>
+
                     <button id="logout-btn" class="text-sm text-red-500 hover:underline">로그아웃</button>
                 </div>
             </div>
@@ -694,6 +847,24 @@
         const categoryButtons = document.querySelectorAll('.plant-category-btn');
         const aiModeToggle = document.getElementById('ai-mode-toggle');
 
+        // Alert Settings Elements
+        const alertSettingsBtn = document.getElementById('alert-settings-btn');
+        const alertSettingsModal = document.getElementById('alert-settings-modal');
+        const closeModalBtns = document.querySelectorAll('.close-modal-btn');
+        const btnShowAddAlert = document.getElementById('btn-show-add-alert');
+        const btnCancelAlert = document.getElementById('btn-cancel-alert');
+        const alertListView = document.getElementById('alert-list-view');
+        const alertFormView = document.getElementById('alert-form-view');
+        const alertListContainer = document.getElementById('alert-list-container');
+        
+        const saveAlertRuleBtn = document.getElementById('save-alert-rule');
+        const alertNameInput = document.getElementById('alert-name');
+        const alertTempMinInput = document.getElementById('alert-temp-min');
+        const alertTempMaxInput = document.getElementById('alert-temp-max');
+        const alertHumidMinInput = document.getElementById('alert-humid-min');
+        const alertSoilMinInput = document.getElementById('alert-soil-min');
+        const toastContainer = document.getElementById('toast-container');
+
         // AI Chat Elements
         const chatHistory = document.getElementById('chat-history');
         const chatInput = document.getElementById('chat-input');
@@ -719,6 +890,11 @@
         let currentPlantSearch = '';
         let isAIModeEnabled = true;
         let currentImageBase64 = null;
+
+        // Alert Rules State (Array of objects)
+        let alertRules = [];
+        let lastAlertTime = 0; // For cooldown
+        const ALERT_COOLDOWN = 60000; // 1 minute cooldown
         
         // Hardcoded Gemini API Key
         const geminiApiKey = "AIzaSyBgD92z-7ekoc5Mc4FTzGAkC7B-c7DAiXQ";
@@ -735,6 +911,30 @@
                 userEmailEl.textContent = user.email;
                 dashboardTitleEl.textContent = `🌿 ${(user.displayName || '나')}의 스마트팜`;
                 listenToProfiles(currentUserId);
+                
+                // Load Alert Rules from LocalStorage
+                const savedRules = localStorage.getItem(`alertRules_${currentUserId}`);
+                if (savedRules) {
+                    try {
+                        alertRules = JSON.parse(savedRules);
+                        // Migrate old single object structure if necessary
+                        if (!Array.isArray(alertRules)) {
+                             alertRules = [{
+                                 id: Date.now(),
+                                 name: '기본 알림',
+                                 enabled: true,
+                                 ...alertRules
+                             }];
+                             localStorage.setItem(`alertRules_${currentUserId}`, JSON.stringify(alertRules));
+                        }
+                    } catch (e) {
+                        alertRules = [];
+                    }
+                } else {
+                    alertRules = [];
+                }
+                renderAlertList();
+
                 // Auto-fetch today's data on login
                 if (historyDatePicker.value) {
                     fetchHistoryData(historyDatePicker.value);
@@ -755,6 +955,8 @@
             }
         });
 
+        // ... (Login/Signup/Reset Event Listeners omitted for brevity, same as previous) ...
+        // Re-adding them to be safe and complete
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
             loginErrorEl.textContent = '';
@@ -875,6 +1077,176 @@
             editProfileContainer.style.display = 'none';
             appContainer.style.display = 'block';
         });
+
+        // --- Alert Settings Logic (NEW) ---
+        alertSettingsBtn.addEventListener('click', () => {
+            alertSettingsModal.classList.remove('hidden');
+            renderAlertList();
+            // Ensure list view is shown first
+            alertListView.classList.remove('hidden');
+            alertFormView.classList.add('hidden');
+        });
+        
+        closeModalBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                alertSettingsModal.classList.add('hidden');
+            });
+        });
+
+        btnShowAddAlert.addEventListener('click', () => {
+            alertListView.classList.add('hidden');
+            alertFormView.classList.remove('hidden');
+            // Reset form
+            alertNameInput.value = '';
+            alertTempMinInput.value = '';
+            alertTempMaxInput.value = '';
+            alertHumidMinInput.value = '';
+            alertSoilMinInput.value = '';
+        });
+
+        btnCancelAlert.addEventListener('click', () => {
+            alertFormView.classList.add('hidden');
+            alertListView.classList.remove('hidden');
+        });
+
+        saveAlertRuleBtn.addEventListener('click', () => {
+            const name = alertNameInput.value.trim();
+            if(!name) { showToast("알림 이름을 입력해주세요.", "error"); return; }
+
+            const newRule = {
+                id: Date.now(),
+                name: name,
+                enabled: true,
+                tempMin: parseFloat(alertTempMinInput.value) || -999,
+                tempMax: parseFloat(alertTempMaxInput.value) || 999,
+                humidMin: parseInt(alertHumidMinInput.value) || 0,
+                soilMin: parseInt(alertSoilMinInput.value) || 0
+            };
+            
+            alertRules.push(newRule);
+            saveRulesToStorage();
+            
+            alertFormView.classList.add('hidden');
+            alertListView.classList.remove('hidden');
+            renderAlertList();
+            showToast("새 알림이 추가되었습니다.", "success");
+        });
+
+        function saveRulesToStorage() {
+            if (currentUserId) {
+                localStorage.setItem(`alertRules_${currentUserId}`, JSON.stringify(alertRules));
+            }
+        }
+
+        function renderAlertList() {
+            alertListContainer.innerHTML = '';
+            if (alertRules.length === 0) {
+                alertListContainer.innerHTML = '<p class="text-center text-gray-500 py-4">등록된 알림이 없습니다.<br>아래 버튼을 눌러 추가해보세요.</p>';
+                return;
+            }
+
+            alertRules.forEach(rule => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-center justify-between';
+                div.innerHTML = `
+                    <div>
+                        <h4 class="font-bold text-gray-800">${rule.name}</h4>
+                        <p class="text-xs text-gray-500 mt-1">
+                            🌡️ ${rule.tempMin == -999 ? '' : rule.tempMin + '°C ~ '} ${rule.tempMax == 999 ? '' : rule.tempMax + '°C'}
+                            ${rule.humidMin > 0 ? ` | 💧 ${rule.humidMin}%` : ''}
+                            ${rule.soilMin > 0 ? ` | 🌱 ${rule.soilMin}%` : ''}
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <label class="alert-switch">
+                            <input type="checkbox" ${rule.enabled ? 'checked' : ''} data-id="${rule.id}" class="toggle-rule">
+                            <span class="alert-slider"></span>
+                        </label>
+                        <button class="text-red-400 hover:text-red-600 delete-rule" data-id="${rule.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                    </div>
+                `;
+                alertListContainer.appendChild(div);
+            });
+
+            // Add event listeners for toggles and delete buttons
+            document.querySelectorAll('.toggle-rule').forEach(toggle => {
+                toggle.addEventListener('change', (e) => {
+                    const id = parseInt(e.target.dataset.id);
+                    const rule = alertRules.find(r => r.id === id);
+                    if(rule) {
+                        rule.enabled = e.target.checked;
+                        saveRulesToStorage();
+                    }
+                });
+            });
+
+            document.querySelectorAll('.delete-rule').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = parseInt(e.currentTarget.dataset.id); // use currentTarget to get button not svg
+                    if(confirm("정말 삭제하시겠습니까?")) {
+                        alertRules = alertRules.filter(r => r.id !== id);
+                        saveRulesToStorage();
+                        renderAlertList();
+                    }
+                });
+            });
+        }
+
+        function showToast(message, type = 'error') {
+            const toast = document.createElement('div');
+            toast.className = 'toast-message';
+            // Different colors for types if needed, currently using red for alert default
+            if (type === 'success') {
+                toast.style.backgroundColor = '#dcfce7';
+                toast.style.color = '#166534';
+                toast.style.borderColor = '#bbf7d0';
+                toast.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>${message}</span>`;
+            } else {
+                toast.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span>${message}</span>`;
+            }
+
+            toastContainer.appendChild(toast);
+            
+            // Trigger reflow
+            toast.offsetHeight; 
+            
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function checkAlerts(temp, humidity, soil) {
+            const now = Date.now();
+            if (now - lastAlertTime < ALERT_COOLDOWN) return; // Skip if in cooldown
+
+            // Check ALL enabled rules
+            let violationFound = false;
+
+            alertRules.forEach(rule => {
+                if (!rule.enabled) return;
+
+                let messages = [];
+                if (temp > rule.tempMax) messages.push(`[${rule.name}] 온도가 너무 높습니다! (${temp.toFixed(1)}°C)`);
+                if (temp < rule.tempMin) messages.push(`[${rule.name}] 온도가 너무 낮습니다! (${temp.toFixed(1)}°C)`);
+                if (humidity < rule.humidMin) messages.push(`[${rule.name}] 습도가 부족합니다! (${humidity}%)`);
+                if (soil < rule.soilMin) messages.push(`[${rule.name}] 물이 부족합니다! (${soil}%)`);
+
+                if (messages.length > 0) {
+                    showToast(messages[0]); // Show first violation per rule
+                    violationFound = true;
+                }
+            });
+
+            if (violationFound) {
+                lastAlertTime = now;
+            }
+        }
+
 
         // --- Tab Logic (NEW) ---
         function setupTabs() {
@@ -1150,6 +1522,7 @@
             tempValueEl.textContent = `${currentTemp.toFixed(1)}℃`; humidityValueEl.textContent = `${currentHumidity.toFixed(0)}%`; soilValueEl.textContent = `${currentSoil.toFixed(0)}%`; lightValueEl.textContent = `${currentLight.toFixed(0)}lx`;
             updateGauge(tempProgressEl, currentTemp, 50); updateGauge(humidityProgressEl, currentHumidity, 100); updateGauge(soilProgressEl, currentSoil, 100); updateGauge(lightProgressEl, currentLight, 2000);
             updateProfileSummary(); addDataToCharts(temp, humidity, soil, light);
+            checkAlerts(temp, humidity, soil); // Check alerts on update
         }
 
         function analyzePlantStatus(profile) {
