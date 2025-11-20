@@ -143,12 +143,49 @@
         }
         input:checked + .alert-slider { background-color: #3b82f6; }
         input:checked + .alert-slider:before { transform: translateX(20px); }
+
+        /* Voice Control Button */
+        #voice-control-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: #3b82f6;
+            color: white;
+            box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 40;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #voice-control-btn:hover {
+            transform: scale(1.05);
+            background-color: #2563eb;
+        }
+        #voice-control-btn.listening {
+            background-color: #ef4444;
+            animation: pulse-red 1.5s infinite;
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
     </style>
 </head>
 <body class="text-gray-800">
 
     <!-- Toast Container -->
     <div id="toast-container"></div>
+
+    <!-- Voice Control Button -->
+    <button id="voice-control-btn" title="음성으로 제어하기">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    </button>
 
     <!-- Alert Settings Modal -->
     <div id="alert-settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
@@ -870,6 +907,9 @@
         const alertHumidMinInput = document.getElementById('alert-humid-min');
         const alertSoilMinInput = document.getElementById('alert-soil-min');
         const toastContainer = document.getElementById('toast-container');
+
+        // Voice Control Element
+        const voiceControlBtn = document.getElementById('voice-control-btn');
 
         // AI Chat Elements
         const chatHistory = document.getElementById('chat-history');
@@ -1961,6 +2001,77 @@
             link.click();
             document.body.removeChild(link);
         });
+
+        // --- Voice Control Logic (NEW) ---
+        const voiceBtn = document.getElementById('voice-control-btn');
+        let recognition = null;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'ko-KR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                voiceBtn.classList.add('listening');
+            };
+
+            recognition.onend = () => {
+                voiceBtn.classList.remove('listening');
+            };
+
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript;
+                console.log("Voice Command:", command);
+                processVoiceCommand(command);
+            };
+
+            voiceBtn.addEventListener('click', () => {
+                if (voiceBtn.classList.contains('listening')) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
+        } else {
+            voiceBtn.style.display = 'none'; // Hide if not supported
+            console.log("Web Speech API not supported.");
+        }
+
+        function processVoiceCommand(command) {
+            showToast(`🗣️ 인식된 명령어: "${command}"`, "success");
+
+            if (command.includes("물") && (command.includes("줘") || command.includes("주기"))) {
+                // Simulate pump
+                showToast("💦 펌프를 10초간 작동합니다.", "success");
+                speak("펌프를 작동합니다.");
+            } else if (command.includes("온도")) {
+                const msg = `현재 온도는 ${currentTemp.toFixed(1)}도 입니다.`;
+                showToast(msg, "success");
+                speak(msg);
+            } else if (command.includes("습도")) {
+                const msg = `현재 습도는 ${currentHumidity}% 입니다.`;
+                showToast(msg, "success");
+                speak(msg);
+            } else if (command.includes("상태") || command.includes("브리핑")) {
+                const msg = `현재 온도는 ${currentTemp.toFixed(1)}도, 습도는 ${currentHumidity}% 입니다.`;
+                showToast(msg, "success");
+                speak(msg);
+            } else {
+                const msg = "죄송해요, 이해하지 못했습니다.";
+                showToast(msg, "error");
+                speak(msg);
+            }
+        }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ko-KR';
+                window.speechSynthesis.speak(utterance);
+            }
+        }
 
         // --- Initialize Everything ---
         initCharts();
