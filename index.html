@@ -674,6 +674,11 @@
                     <div class="flex items-center gap-2">
                         <label for="history-date-picker" class="text-sm font-medium text-gray-700">날짜 선택:</label>
                         <input type="date" id="history-date-picker" class="border-gray-300 rounded-md shadow-sm">
+                        <!-- CSV Download Button -->
+                        <button id="download-csv-btn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md transition text-sm font-medium flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            엑셀 다운로드
+                        </button>
                     </div>
                 </div>
                 <div id="history-chart-container" class="h-96 relative">
@@ -846,6 +851,7 @@
         const noPlantResultsEl = document.getElementById('no-plant-results');
         const categoryButtons = document.querySelectorAll('.plant-category-btn');
         const aiModeToggle = document.getElementById('ai-mode-toggle');
+        const downloadCsvBtn = document.getElementById('download-csv-btn');
 
         // Alert Settings Elements
         const alertSettingsBtn = document.getElementById('alert-settings-btn');
@@ -890,6 +896,7 @@
         let currentPlantSearch = '';
         let isAIModeEnabled = true;
         let currentImageBase64 = null;
+        let currentHistoryData = [];
 
         // Alert Rules State (Array of objects)
         let alertRules = [];
@@ -1893,9 +1900,22 @@
             const querySnapshot = await getDocs(q);
             const data = { temp: [], humidity: [], soil: [], light: [] };
             
+            // Reset global data variable
+            currentHistoryData = [];
+
             querySnapshot.forEach((doc) => {
                 const docData = doc.data();
                 const timestamp = docData.timestamp.toDate();
+                
+                // Store raw data for CSV
+                currentHistoryData.push({
+                    time: timestamp.toLocaleTimeString('ko-KR'),
+                    temp: docData.temp,
+                    humidity: docData.humidity,
+                    soil: docData.soil,
+                    light: docData.light
+                });
+
                 data.temp.push({ x: timestamp, y: docData.temp });
                 data.humidity.push({ x: timestamp, y: docData.humidity });
                 data.soil.push({ x: timestamp, y: docData.soil });
@@ -1916,6 +1936,31 @@
         }
 
         historyDatePicker.addEventListener('change', (e) => fetchHistoryData(e.target.value));
+
+        downloadCsvBtn.addEventListener('click', () => {
+            if (currentHistoryData.length === 0) {
+                alert('다운로드할 데이터가 없습니다. 😅');
+                return;
+            }
+
+            // CSV Header
+            let csvContent = "\uFEFF시간,온도(°C),습도(%),토양 수분(%),조도(lx)\n"; // BOM for Korean support
+
+            // CSV Rows
+            currentHistoryData.forEach(row => {
+                csvContent += `${row.time},${row.temp},${row.humidity},${row.soil},${row.light}\n`;
+            });
+
+            // Create Blob and Download Link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", `smartfarm_data_${historyDatePicker.value}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
 
         // --- Initialize Everything ---
         initCharts();
