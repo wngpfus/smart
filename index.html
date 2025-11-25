@@ -690,12 +690,13 @@
 
                 <!-- Suggestion Chips -->
                 <div class="flex gap-2 mb-3 overflow-x-auto no-scrollbar" id="chat-suggestions">
-                    <button id="btn-diagnosis" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-red-50 text-sm text-red-600 hover:bg-red-100 transition border border-red-200 font-bold flex items-center gap-1">
-                        📸 병해충 진단 받기 🩺
+                    <button id="btn-plant-doctor" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-green-100 text-sm text-green-700 hover:bg-green-200 transition border border-green-200 font-semibold flex items-center gap-1">
+                        🐛 병해충/질병 진단
                     </button>
-                    <button class="suggestion-btn whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">지금 내 작물 상태 어때? 🌱</button>
-                    <button class="suggestion-btn whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">물은 얼마나 자주 줘야 해? 💧</button>
-                    <button class="suggestion-btn whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">상추 잘 키우는 꿀팁 알려줘 🥬</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">지금 내 작물 상태 어때? 🌱</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">물은 얼마나 자주 줘야 해? 💧</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">상추 잘 키우는 꿀팁 알려줘 🥬</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">습도가 적당한가요? 🌡️</button>
                 </div>
 
                 <!-- NEW: Image Preview Container -->
@@ -1816,7 +1817,7 @@
             }
             
             const promptText = `
-                당신은 스마트팜 전문가이자 20년 경력의 식물 병리학자 AI입니다. 사용자의 질문에 친절하고 전문적으로 답변해주세요.
+                당신은 스마트팜 전문가 AI이자 식물 의사입니다. 사용자의 질문에 친절하고 전문적으로 답변해주세요.
                 답변은 핵심만 요약해서 짧고 간결하게(3~4문장 내외) 해주세요.
                 특히 병해충 진단 요청 시에는 병명, 원인, 친환경 해결책을 명확히 제시해주세요.
                 
@@ -1830,23 +1831,15 @@
                 
                 [사용자 질문]
                 ${message}
-
-                [답변 가이드라인]
-                1. 사용자가 식물 사진을 올리고 "진단"이나 "아픈 것 같아"라고 물어보면 반드시 아래 형식으로 답변하세요:
-                   - **🩺 진단명**: (예: 흰가루병, 진딧물, 칼슘 결핍 등, 확실하지 않으면 추정)
-                   - **🧐 증상 분석**: 사진이나 설명에서 보이는 특징
-                   - **💊 처방 및 해결책**: 친환경 방제법 및 약제 추천
-                   - **🛡️ 예방 및 관리**: 향후 재발 방지를 위한 환경 관리 팁 (현재 센서 데이터 참고)
-                
-                2. 일반적인 질문에는 친절하고 간결하게 답변하세요.
-                3. 인사말은 생략하고 바로 본론으로 답변하세요.
             `;
 
             const parts = [{ text: promptText }];
             
             if (base64Image) {
+                // Extract pure Base64 string (remove data:image/png;base64, prefix)
                 const mimeType = base64Image.split(';')[0].split(':')[1];
                 const data = base64Image.split(',')[1];
+                
                 parts.push({
                     inlineData: {
                         mimeType: mimeType,
@@ -1972,30 +1965,13 @@
         });
 
         // --- Chat Suggestion Logic (NEW) ---
-        // --- Chat Suggestion Logic ---
-        // 1. 일반 추천 질문 버튼들 (suggestion-btn 클래스 추가 필요)
-        document.querySelectorAll('.suggestion-btn').forEach(btn => {
+        document.querySelectorAll('#chat-suggestions button:not(#btn-plant-doctor)').forEach(btn => {
             btn.addEventListener('click', () => {
-                const message = btn.textContent.replace(/ [🌱💧🥬🌡️]$/, ''); 
-                addChatMessage("User", btn.textContent); 
-                callGeminiAPI(message); 
+                const message = btn.textContent.replace(/ [🌱💧🥬🌡️]$/, ''); // Remove emoji for clean query if needed, though Gemini handles it.
+                addChatMessage("User", btn.textContent); // Show full text with emoji
+                callGeminiAPI(message); // Send clean or full text
             });
         });
-
-        // 2. [NEW] 병해충 진단 버튼 로직
-        const btnDiagnosis = document.getElementById('btn-diagnosis');
-        if (btnDiagnosis) {
-            btnDiagnosis.addEventListener('click', () => {
-                // 1. 사용자에게 안내 메시지 표시
-                addChatMessage("AI", "식물의 아픈 부위가 잘 보이도록 사진을 찍거나 업로드해주세요. 📸");
-                
-                // 2. 파일 업로드 창 강제 실행
-                imageUpload.click();
-                
-                // 3. 입력창에 진단 요청 텍스트 미리 입력 (사용자가 사진 선택 후 바로 전송만 누르면 되도록)
-                chatInput.value = "이 식물의 잎 상태를 보고 병해충이나 질병을 진단해주고, 해결 방법을 알려줘.";
-            });
-        }
 
 
         function updateProfileSelect() {
