@@ -690,13 +690,13 @@
 
                 <!-- Suggestion Chips -->
                 <div class="flex gap-2 mb-3 overflow-x-auto no-scrollbar" id="chat-suggestions">
-                    <!-- Diagnosis Chip (NEW) -->
-                    <button id="btn-diagnosis" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-red-50 text-sm text-red-600 hover:bg-red-100 transition border border-red-200 font-medium flex items-center gap-1">
-                        🚑 병해충 진단 (사진 업로드)
+                    <button id="btn-plant-doctor" class="whitespace-nowrap px-3 py-1.5 rounded-full bg-green-100 text-sm text-green-700 hover:bg-green-200 transition border border-green-200 font-semibold flex items-center gap-1">
+                        🐛 병해충/질병 진단
                     </button>
                     <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">지금 내 작물 상태 어때? 🌱</button>
                     <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">물은 얼마나 자주 줘야 해? 💧</button>
                     <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">상추 잘 키우는 꿀팁 알려줘 🥬</button>
+                    <button class="whitespace-nowrap px-3 py-1.5 rounded-full bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition border border-gray-200">습도가 적당한가요? 🌡️</button>
                 </div>
 
                 <!-- NEW: Image Preview Container -->
@@ -947,8 +947,7 @@
         const imagePreview = document.getElementById('image-preview');
         const imageName = document.getElementById('image-name');
         const removeImageBtn = document.getElementById('remove-image-btn');
-        const btnDiagnosis = document.getElementById('btn-diagnosis');
-
+        const btnPlantDoctor = document.getElementById('btn-plant-doctor');
         
         // --- State Variables ---
         let currentUserId = null;
@@ -966,7 +965,6 @@
         let currentImageBase64 = null;
         let currentHistoryData = [];
         let weeklyWeatherData = null;
-        let isDiagnosisMode = false;
 
         // Alert Rules State (Array of objects)
         let alertRules = [];
@@ -1772,16 +1770,7 @@
         }
 
         // --- Image Upload Logic ---
-        // Button trigger
-        uploadBtn.addEventListener('click', () => {
-             imageUpload.click();
-        });
-        
-        // Diagnosis Chip trigger
-        btnDiagnosis.addEventListener('click', () => {
-            isDiagnosisMode = true;
-            imageUpload.click();
-        });
+        uploadBtn.addEventListener('click', () => imageUpload.click());
 
         imageUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -1792,14 +1781,6 @@
                     imagePreview.src = currentImageBase64;
                     imageName.textContent = file.name;
                     imagePreviewContainer.classList.remove('hidden');
-                    
-                    // Auto-fill prompt for diagnosis
-                    if (isDiagnosisMode) {
-                         chatInput.value = "이 식물의 병해충을 진단하고 처방해줘 🏥";
-                         // Optional: Auto-send
-                         // sendChatBtn.click(); 
-                         isDiagnosisMode = false; // Reset flag
-                    }
                 };
                 reader.readAsDataURL(file);
             }
@@ -1811,6 +1792,23 @@
             imagePreviewContainer.classList.add('hidden');
         });
 
+        // --- Plant Doctor Logic (NEW) ---
+        btnPlantDoctor.addEventListener('click', () => {
+             if (!currentImageBase64) {
+                showToast("진단을 위해 잎 사진을 먼저 올려주세요 📸", "error");
+                uploadBtn.click();
+            } else {
+                const message = "이 사진 속 식물의 병해충을 진단하고 치료법을 알려줘.";
+                addChatMessage("User", message, currentImageBase64);
+                callGeminiAPI(message, currentImageBase64);
+                chatInput.value = '';
+                currentImageBase64 = null;
+                imageUpload.value = '';
+                imagePreviewContainer.classList.add('hidden');
+            }
+        });
+
+
         // AI Chat Logic (Robust with Retries and Image Support)
         async function callGeminiAPI(message, base64Image = null) {
             if (!geminiApiKey) {
@@ -1819,19 +1817,11 @@
             }
             
             const promptText = `
-                당신은 스마트팜 전문가 AI이자 노련한 '식물 의사(Plant Doctor)'입니다. 
-                사용자의 질문에 친절하게 답변해주세요.
-                답변은 핵심만 요약해서 짧고 간결하게, 하지만 전문적으로 해주세요.
-
-                [당신의 역할]
-                1. 일반 질문: 스마트팜 관리, 식물 재배 팁 등을 조언합니다.
-                2. 병해충 진단(사진 첨부 시): 
-                   - 업로드된 사진을 식물의 잎, 줄기, 열매로 간주하고 정밀 분석합니다.
-                   - 의심되는 병해충 이름(확률 포함), 주요 증상, 발생 원인을 설명합니다.
-                   - 화학 농약 대신 '친환경 방제법(천연 살충제, 환경 관리 등)'을 우선 처방해 주세요.
-                   - 만약 식물이 건강해 보인다면 칭찬해 주세요.
+                당신은 스마트팜 전문가 AI이자 식물 의사입니다. 사용자의 질문에 친절하고 전문적으로 답변해주세요.
+                답변은 핵심만 요약해서 짧고 간결하게(3~4문장 내외) 해주세요.
+                특히 병해충 진단 요청 시에는 병명, 원인, 친환경 해결책을 명확히 제시해주세요.
                 
-                **중요: 이미 대화 중이므로 "안녕하세요" 같은 인사말이나 자기소개는 생략하고 바로 본론으로 들어가세요.**
+                **중요: 이미 대화 중이므로 "안녕하세요" 같은 인사말이나 "저는 스마트팜 전문가 AI입니다" 같은 자기소개는 절대 하지 마세요. 바로 본론으로 들어가서 답변만 하세요.**
                 
                 [현재 센서 데이터]
                 온도: ${currentTemp}°C
@@ -1975,7 +1965,7 @@
         });
 
         // --- Chat Suggestion Logic (NEW) ---
-        document.querySelectorAll('#chat-suggestions button:not(#btn-diagnosis)').forEach(btn => {
+        document.querySelectorAll('#chat-suggestions button:not(#btn-plant-doctor)').forEach(btn => {
             btn.addEventListener('click', () => {
                 const message = btn.textContent.replace(/ [🌱💧🥬🌡️]$/, ''); // Remove emoji for clean query if needed, though Gemini handles it.
                 addChatMessage("User", btn.textContent); // Show full text with emoji
