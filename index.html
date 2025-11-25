@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Farm Dashboard - Diagnosis Included</title>
+    <title>Smart Farm Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -474,100 +474,84 @@
                 <div id="profile-summary-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     </div>
             </div>
-             <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
-                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
-                   <div class="w-full flex items-center justify-between mb-4">
-                       <h2 class="text-xl font-semibold text-gray-800">온도</h2>
-                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+             <div style="display: none;">
+                 <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+                    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
+                       <div class="w-full flex items-center justify-between mb-4">
+                           <h2 class="text-xl font-semibold text-gray-800">온도</h2>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+                       </div>
+                       <div class="relative w-40 h-40">
+                           <svg class="w-full h-full" viewBox="0 0 100 100">
+                               <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
+                               <circle id="temp-progress" class="gauge-circle-progress stroke-red-500" cx="50" cy="50" r="45"></circle>
+                           </svg>
+                           <div id="temp-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--℃</div>
+                       </div>
+                       <p class="mt-4 text-gray-500 text-sm">현재 실내 온도</p>
                    </div>
-                   <div class="relative w-40 h-40">
-                       <svg class="w-full h-full" viewBox="0 0 100 100">
-                           <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
-                           <circle id="temp-progress" class="gauge-circle-progress stroke-red-500" cx="50" cy="50" r="45"></circle>
-                       </svg>
-                       <div id="temp-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--℃</div>
-                   </div>
-                   <p class="mt-4 text-gray-500 text-sm">현재 실내 온도</p>
-               </div>
 
-               <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
-                   <div class="w-full flex items-center justify-between mb-4">
-                       <h2 class="text-xl font-semibold text-gray-800">습도</h2>
-                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
-                   </div>
-                   <div class="relative w-40 h-40">
-                       <svg class="w-full h-full" viewBox="0 0 100 100">
-                           <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
-                           <circle id="humidity-progress" class="gauge-circle-progress stroke-blue-500" cx="50" cy="50" r="45"></circle>
-                       </svg>
-                       <div id="humidity-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
-                   </div>
-                     <div class="w-full mt-4">
-                       <div class="flex items-center justify-between text-sm py-2">
-                           <label for="humidity-input" class="text-gray-600">목표 습도</label>
-                           <div class="flex items-center gap-1">
-                               <input id="humidity-input" type="number" min="0" max="100" class="w-16 text-center font-bold text-blue-600 border border-gray-300 rounded-md p-1 focus:ring-blue-500 focus:border-blue-500">
-                               <span class="font-semibold text-gray-500">%</span>
-                           </div>
+                   <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
+                       <div class="w-full flex items-center justify-between mb-4">
+                           <h2 class="text-xl font-semibold text-gray-800">습도</h2>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+                       </div>
+                       <div class="relative w-40 h-40">
+                           <svg class="w-full h-full" viewBox="0 0 100 100">
+                               <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
+                               <circle id="humidity-progress" class="gauge-circle-progress stroke-blue-500" cx="50" cy="50" r="45"></circle>
+                           </svg>
+                           <div id="humidity-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                        </div>
                    </div>
-               </div>
 
-               <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
-                   <div class="w-full flex items-center justify-between mb-4">
-                       <h2 class="text-xl font-semibold text-gray-800">토양 수분</h2>
-                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M21.2,12.2C21.2,12.2,21.2,12.2,21.2,12.2C19.3,16,16,18.8,12,18.8S4.7,16,2.8,12.2c0,0,0,0,0,0c-1.8-3.9,0.3-7.5,1-8.6 C4.2,2.8,4.9,2.2,5.6,2.1c0,0,0,0,0.1,0C7.2,1.8,9.6,3.3,12,5.7c2.4-2.4,4.8-3.9,6.3-4.1c0,0,0.1,0,0.1,0c0.7,0.1,1.4,0.7,1.8,1.5 C20.9,4.7,23,8.3,21.2,12.2z"/><path d="M12,18.8v3.3"/></svg>
-                   </div>
-                   <div class="relative w-40 h-40">
-                       <svg class="w-full h-full" viewBox="0 0 100 100">
-                           <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
-                           <circle id="soil-progress" class="gauge-circle-progress stroke-green-500" cx="50" cy="50" r="45"></circle>
-                       </svg>
-                       <div id="soil-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
-                   </div>
-                     <div class="w-full mt-4">
-                       <div class="flex items-center justify-between text-sm py-2">
-                           <label for="soil-input" class="text-gray-600">급수 기준</label>
-                           <div class="flex items-center gap-1">
-                               <input id="soil-input" type="number" min="0" max="100" class="w-16 text-center font-bold text-green-600 border border-gray-300 rounded-md p-1 focus:ring-green-500 focus:border-green-500">
-                               <span class="font-semibold text-gray-500">%</span>
-                           </div>
+                   <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
+                       <div class="w-full flex items-center justify-between mb-4">
+                           <h2 class="text-xl font-semibold text-gray-800">토양 수분</h2>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M21.2,12.2C21.2,12.2,21.2,12.2,21.2,12.2C19.3,16,16,18.8,12,18.8S4.7,16,2.8,12.2c0,0,0,0,0,0c-1.8-3.9,0.3-7.5,1-8.6 C4.2,2.8,4.9,2.2,5.6,2.1c0,0,0,0,0.1,0C7.2,1.8,9.6,3.3,12,5.7c2.4-2.4,4.8-3.9,6.3-4.1c0,0,0.1,0,0.1,0c0.7,0.1,1.4,0.7,1.8,1.5 C20.9,4.7,23,8.3,21.2,12.2z"/><path d="M12,18.8v3.3"/></svg>
+                       </div>
+                       <div class="relative w-40 h-40">
+                           <svg class="w-full h-full" viewBox="0 0 100 100">
+                               <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
+                               <circle id="soil-progress" class="gauge-circle-progress stroke-green-500" cx="50" cy="50" r="45"></circle>
+                           </svg>
+                           <div id="soil-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--%</div>
                        </div>
                    </div>
-               </div>
 
-               <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
-                   <div class="w-full flex items-center justify-between mb-4">
-                       <h2 class="text-xl font-semibold text-gray-800">조도</h2>
-                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-500"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+                   <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 flex flex-col items-center justify-between">
+                       <div class="w-full flex items-center justify-between mb-4">
+                           <h2 class="text-xl font-semibold text-gray-800">조도</h2>
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-500"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/></svg>
+                       </div>
+                       <div class="relative w-40 h-40">
+                           <svg class="w-full h-full" viewBox="0 0 100 100">
+                               <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
+                               <circle id="light-progress" class="gauge-circle-progress stroke-yellow-500" cx="50" cy="50" r="45"></circle>
+                           </svg>
+                           <div id="light-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--lx</div>
+                       </div>
+                       <p class="mt-4 text-gray-500 text-sm">현재 조도량</p>
                    </div>
-                   <div class="relative w-40 h-40">
-                       <svg class="w-full h-full" viewBox="0 0 100 100">
-                           <circle class="gauge-circle-bg" cx="50" cy="50" r="45"></circle>
-                           <circle id="light-progress" class="gauge-circle-progress stroke-yellow-500" cx="50" cy="50" r="45"></circle>
-                       </svg>
-                       <div id="light-value" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">--lx</div>
-                   </div>
-                   <p class="mt-4 text-gray-500 text-sm">현재 조도량</p>
-               </div>
-            </main>
-             <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">온도 변화 (°C)</h3>
-                    <div class="h-64"><canvas id="tempChart"></canvas></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">습도 변화 (%)</h3>
-                    <div class="h-64"><canvas id="humidityChart"></canvas></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">토양 수분 변화 (%)</h3>
-                    <div class="h-64"><canvas id="soilChart"></canvas></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">조도 변화 (lx)</h3>
-                    <div class="h-64"><canvas id="lightChart"></canvas></div>
-                </div>
+                </main>
+                 <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">온도 변화 (°C)</h3>
+                        <div class="h-64"><canvas id="tempChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">습도 변화 (%)</h3>
+                        <div class="h-64"><canvas id="humidityChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">토양 수분 변화 (%)</h3>
+                        <div class="h-64"><canvas id="soilChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">조도 변화 (lx)</h3>
+                        <div class="h-64"><canvas id="lightChart"></canvas></div>
+                    </div>
+                 </div>
              </div>
         </div>
         
@@ -584,8 +568,8 @@
                     </div>
                 </div>
                 <div class="mt-4 pt-4 border-t">
-                    <label class="block text-sm font-medium text-gray-700">아이콘 선택</label>
-                    <div id="icon-picker" class="mt-2 flex gap-2 flex-wrap">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">아이콘 선택</label>
+                    <div id="icon-picker" class="flex gap-2 flex-wrap">
                         <button class="icon-picker-item text-3xl p-2 border-2 rounded-lg transition">🌱</button>
                         <button class="icon-picker-item text-3xl p-2 border-2 rounded-lg transition">🍅</button>
                         <button class="icon-picker-item text-3xl p-2 border-2 rounded-lg transition">🍓</button>
@@ -600,7 +584,30 @@
                         <button class="icon-picker-item text-3xl p-2 border-2 rounded-lg transition">🌻</button>
                     </div>
                 </div>
-                <div class="mt-4 border-t pt-4">
+                
+                <div class="mt-6 border-t pt-4">
+                    <h4 class="text-md font-semibold text-gray-800 mb-3">환경 설정 목표값</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                            <label for="profile-temp" class="block text-sm font-medium text-gray-700">온도 (°C)</label>
+                            <input type="number" id="profile-temp" placeholder="25" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="profile-humid" class="block text-sm font-medium text-gray-700">습도 (%)</label>
+                            <input type="number" id="profile-humid" placeholder="60" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="profile-soil" class="block text-sm font-medium text-gray-700">토양 수분 (%)</label>
+                            <input type="number" id="profile-soil" placeholder="70" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
+                        </div>
+                        <div>
+                            <label for="profile-light" class="block text-sm font-medium text-gray-700">조도 (lx)</label>
+                            <input type="number" id="profile-light" placeholder="1000" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 border-t pt-4">
                       <label for="profile-name-input" class="block text-sm font-medium text-gray-700">프로필 이름</label>
                       <div class="mt-1 flex gap-2">
                         <input type="text" id="profile-name-input" placeholder="새 이름 입력 또는 기존 이름 선택" class="flex-grow block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm p-2">
@@ -895,8 +902,13 @@
         const soilProgressEl = document.getElementById('soil-progress');
         const lightValueEl = document.getElementById('light-value');
         const lightProgressEl = document.getElementById('light-progress');
-        const humidityInput = document.getElementById('humidity-input');
-        const soilInput = document.getElementById('soil-input');
+        
+        // Profile Input Elements
+        const profileTempInput = document.getElementById('profile-temp');
+        const profileHumidInput = document.getElementById('profile-humid');
+        const profileSoilInput = document.getElementById('profile-soil');
+        const profileLightInput = document.getElementById('profile-light');
+
         const connectBtn = document.getElementById('connectBtn');
         const simulateBtn = document.getElementById('simulateBtn');
         const profileSelect = document.getElementById('profile-select');
@@ -993,8 +1005,8 @@
         let lastAlertTime = 0; // For cooldown
         const ALERT_COOLDOWN = 60000; // 1 minute cooldown
         
-        // Gemini API Key (Using empty string for proxy)
-        const geminiApiKey = "";
+        // Gemini API Key (Applied)
+        const geminiApiKey = "AIzaSyBgD92z-7ekoc5Mc4FTzGAkC7B-c7DAiXQ";
 
         // --- Firebase Auth Logic ---
         onAuthStateChanged(auth, user => {
@@ -1847,8 +1859,11 @@
                 targetSoil = profile.targetSoil;
                 selectedIcon = profile.icon || '🌱';
                 
-                humidityInput.value = targetHumidity;
-                soilInput.value = targetSoil;
+                // New Inputs
+                profileTempInput.value = profile.targetTemp || '';
+                profileHumidInput.value = profile.targetHumidity || '';
+                profileSoilInput.value = profile.targetSoil || '';
+                profileLightInput.value = profile.targetLight || '';
                 
                 // Update Icon Picker UI
                 document.querySelectorAll('.icon-picker-item').forEach(btn => {
@@ -1881,8 +1896,10 @@
             
             const newProfile = {
                 icon: selectedIcon,
-                targetHumidity: parseInt(humidityInput.value),
-                targetSoil: parseInt(soilInput.value)
+                targetTemp: parseFloat(profileTempInput.value) || 0,
+                targetHumidity: parseInt(profileHumidInput.value) || 0,
+                targetSoil: parseInt(profileSoilInput.value) || 0,
+                targetLight: parseInt(profileLightInput.value) || 0
             };
 
             try {
